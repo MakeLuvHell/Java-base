@@ -54,7 +54,7 @@
 | `Pagination` / `RightToolbar` | 列表分页与列工具 | 标准后台模式 |
 | `FileUpload` / `ImageUpload` | 上传 | 走通用上传 API |
 | `ImagePreview` | 预览 | — |
-| `Editor` | 富文本（Quill） | 内容可能含 HTML，出站渲染需注意 XSS |
+| `Editor` | 富文本（Quill） | `dangerouslyPasteHTML` 灌入 HTML（`Editor/index.vue:112,141`），输出 `innerHTML`；公告等业务 `v-html` 展示 |
 | `DictTag` / `DictData` | 字典展示 | — |
 
 ## 样式加载与覆盖关系
@@ -73,7 +73,8 @@
 
 | 令牌 | 值 | 用途 | 归属 | 范围 |
 | --- | --- | --- | --- | --- |
-| `$--color-primary` | `#1890ff` | Element 主色 / 主题导出 | `element-variables.scss:7` | 全局组件主题 |
+| `$--color-primary` | `#1890ff` | Element 编译期主色 / `:export.theme` | `element-variables.scss:7` | 编译进 Element 主题 |
+| runtime `settings.theme` | `#409EFF`（默认可被 localStorage 覆盖） | 运行时主题色 / CSS 变量源 | `store/modules/settings.js:9`；`ThemePicker` `ORIGINAL_THEME` | 与编译主色**不一致** |
 | `$--color-success` | `#13ce66` | 成功态 | `element-variables.scss:8` | Element |
 | `$--color-warning` | `#ffba00` | 警告态 | `element-variables.scss:9` | Element |
 | `$--color-danger` | `#ff4949` | 危险态 | `element-variables.scss:10` | Element |
@@ -110,18 +111,25 @@
 | `#bfbfbf` | 登录占位 | `login.vue` |
 | `#ffffff` | 登录卡片底 | `login.vue` |
 
-**观察：** 主色以 Element `#1890ff` 为权威；侧栏中性色在 `variables.scss` 独立维护；辅助色板与主色体系并存，部分页面仍可能硬编码。
+**观察：**
+
+1. **双主色源：** SCSS 编译主色为 `#1890ff`（`element-variables.scss:7`），运行时默认与 ThemePicker 基准为 `#409EFF`（`settings.js` store:9；`ThemePicker/index.vue:4,11`）。未改主题时，Element 编译色与 `--current-color`/动态换肤基准可能不一致。
+2. 侧栏中性色在 `variables.scss` 独立维护；辅助色板（`$blue` 等）与工具类 `.text-success` 等（`ruoyi.scss`）又形成第三套状态色，易漂移。
+3. ThemePicker 通过替换 `/styles/theme-chalk/index.css` 色簇实现运行时换肤（`ThemePicker/index.vue:64-79`），预置色含 `#409EFF`、`#1890ff` 等。
 
 ## 字体、尺寸、间距与层级
 
 | 项 | 值/行为 | 证据 |
 | --- | --- | --- |
 | 侧栏宽 | 200px；折叠 54px | `variables.scss:24`；`sidebar.scss:203-204` |
+| Navbar 高 | 50px，背景 `#fff` | `Navbar.vue` 样式段 |
+| TagsView 高 | 34px | `TagsView/index.vue` |
+| AppMain 高 | 无 tags：`calc(100vh-50px)`；有 tags：`calc(100vh-84px)` | `AppMain.vue` |
 | 菜单项高 | 44px 行高 | `sidebar.scss:77-78` |
 | 布局高度 | `100%` / `100vh` 壳层 | `layout/index.vue:71-90` |
 | 按钮字重 | `$--button-font-weight: 400` | `element-variables.scss:13` |
 | 内容区 | `app-container` 等工具类 | `ruoyi.scss` |
-| 层级 | 顶栏/页签/侧栏/抽屉由 Element 与布局 class 控制 | layout 组件族 |
+| 层级 | 侧栏 z-index 约 1001；遮罩 opacity 0.3 | `sidebar.scss`；`layout/index.vue` |
 
 完整字号阶梯未集中在单一 design token 文件，多依赖 Element 默认与局部 SCSS。
 
@@ -142,13 +150,14 @@
 
 | 断点/行为 | 位置 |
 | --- | --- |
-| `max-width: 768px` | `ruoyi.scss:147` |
+| JS `WIDTH = 992` → `mobile` | `layout/mixin/ResizeHandler.js:4` |
 | `max-width: 991px` AppMain | `AppMain.vue:93`、`108` |
+| `max-width: 768px` 分页简化 | `ruoyi.scss:147` |
 | `max-width: 550px` 仪表盘 | `dashboard/PanelGroup.vue:163` |
 | `max-width: 1024px` | `index_v1.vue:93` |
 | 移动侧栏抽屉 | `layout/index.vue` `device==='mobile'` |
 
-**观察：** 后台以桌面为先；移动端通过隐藏/抽屉侧栏与部分栅格断点适配，复杂表格页在小屏仍可能横向滚动（实现层面常见，非单独无障碍缺陷结论）。
+**观察：** JS 以 992 切换 mobile，CSS 多处以 991/768/550/1024 分段，断点不统一；CRUD 业务页几乎无自有 `@media`。小屏表格仍可能横向滚动。
 
 ## 可访问性审计
 
@@ -165,16 +174,18 @@
 
 ## UI 一致性观察
 
-1. 主色与状态色在 Element 变量层统一，侧栏中性色单独一套，整体视觉接近 Ant/Element 管理台惯例。
-2. 布局尺寸令牌有限（侧栏宽、菜单高），间距/字号未形成完整 design token 文档化体系。
-3. 主题能力偏“侧栏皮肤 + 主色”，不是完整亮/暗内容主题。
-4. CRUD 页面模式高度一致，利于生成器与二次开发，也导致自定义页面易复制样板而非抽取更高阶模式。
-5. 登录页与后台壳层色板略分离（登录硬编码灰色文案）。
+1. 编译主色 `#1890ff` 与运行时默认 `#409EFF` 双源，是配色维护的首要不一致点。
+2. 侧栏中性色、Element 状态色、`.text-*` 工具类三套并存。
+3. 布局尺寸令牌有限（侧栏/顶栏/页签高度可测），间距/字号未文档化。
+4. 主题能力偏“侧栏皮肤 + ThemePicker 主色”，无 `prefers-color-scheme` 全站 dark mode。
+5. CRUD 页面模式高度一致（用户管理为样板：树 + 表 + 对话框）。
+6. 登录页默认填充演示账号（`login.vue` 中 username/password 初始值），与壳层色板分离。
 
 ## 维护建议
 
-1. 将主色、中性色、状态色、侧栏色收敛到单一 token 源，减少 `variables` 与页面硬编码分叉。
-2. 恢复可见的 `:focus-visible` 样式，避免 `outline: none` 一刀切。
-3. 为 `v-html` 出口建立白名单消毒约定，并在 UI 组件层标注“可信 HTML only”。
-4. 若需真·暗色模式，单独设计内容区 token，而不是仅切换侧栏 `theme-dark`。
-5. 响应式以表格/对话框溢出策略为优先补强点（小屏操作路径）。
+1. 统一编译主色与 runtime/`ThemePicker` 默认（二选一或构建时同源注入）。
+2. 将主色、中性色、状态色、侧栏色收敛到单一 token 源。
+3. 恢复 `:focus-visible`；为 Hamburger、Tags 按钮等可点击 `div`/`span` 补 `role`/`tabindex`/可访问名。
+4. Editor 出站消毒 + 公告 `v-html` 白名单；避免 `dangerouslyPasteHTML` 直灌不可信内容。
+5. 统一 992/991 等断点；CRUD 列表补小屏策略。
+6. 生产构建移除或清空登录页演示账号默认值。

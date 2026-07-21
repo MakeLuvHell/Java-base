@@ -114,8 +114,8 @@
 
 - **影响：** 存储型/反射型 HTML 若进入 `v-html` 可能在管理端执行脚本。
 - **条件：** XSS 过滤器未覆盖的路径写入富文本；公告等内容被 `v-html` 渲染。
-- **证据：** XSS 配置匹配 `/system/*` 等并排除 `/system/notice`（`application.yml:141-147`）；`XssFilter`/`EscapeUtil.clean`（`XssFilter.java`、`XssHttpServletRequestWrapper.java:40-41`）；前端 `v-html` 如 `HeaderNotice/DetailView.vue:45`、`HeaderSearch` 高亮、导入结果 `dangerouslyUseHTMLString`。
-- **建议：** 公告等富文本服务端白名单消毒；前端避免不可信 `v-html`；CSP。
+- **证据：** XSS 配置匹配 `/system/*` 等并排除 `/system/notice`（`application.yml:141-147`）；`XssFilter`/`EscapeUtil.clean`（`XssFilter.java`、`XssHttpServletRequestWrapper.java:40-41`）；富文本 `Editor` 使用 `Quill.clipboard.dangerouslyPasteHTML` 并读 `innerHTML`（`ruoyi-ui/src/components/Editor/index.vue:112,141-143`）；公告详情 `v-html="detail.noticeContent"`（`HeaderNotice/DetailView.vue:45`）；另有 HeaderSearch 高亮、导入结果 `dangerouslyUseHTMLString`。
+- **建议：** 公告等富文本服务端白名单消毒；Editor 输出消毒；前端避免不可信 `v-html`；CSP。
 - **验证：** 在排除路径写入脚本标签后以普通用户查看是否执行（授权测试环境）。
 
 ### SEC-011 开发态日志级别 `com.ruoyi: debug`
