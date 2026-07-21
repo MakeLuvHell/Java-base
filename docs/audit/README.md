@@ -9,7 +9,7 @@
 - 架构为清晰的六模块 Maven + Vue2 前后端分离；会话模型是 **JWT 指针 + Redis `LoginUser`**，权限含 URL 认证、方法级权限与数据权限切面。
 - UI 以 Element 主色 `#1890ff` 与独立侧栏中性色为双轨 token；主题能力主要是侧栏深浅 + 主色，而非完整暗色内容主题；焦点 outline 被全局弱化。
 - 安全骨架完整（BCrypt、验证码、锁定、白名单任务、上传扩展名等），优先风险是 **默认密钥/口令与 Druid/Swagger 暴露（SEC-001–003）**、**生成器 DDL（SEC-007）**，其次 CORS、`/profile` 匿名读、XSS 出口与 `${}` SQL 面。
-- 本环境 **无 JDK/Maven**，后端构建与依赖 CVE 扫描未能执行；仓库 **无 `src/test`**。
+- 本环境 **无 JDK/Maven**，后端构建与 OWASP 未能执行；前端 **`build:prod` 已通过**；`npm audit` 因无 lockfile 不可用；仓库 **无 `src/test`**。
 
 | 严重度 | 数量 | 代表 ID |
 | --- | --- | --- |
@@ -87,7 +87,10 @@
 | 2026-07-21 | 模块与源码盘点 | 6 模块；main 315；ui src 289；test 0 |
 | 2026-07-21 | 静态安全检索 | permitAll、`${}`、上传、任务白名单、XSS、v-html 等已取证 |
 | 2026-07-21 | 文档密钥模式 | 报告不复制 password/secret 值 |
-| 2026-07-21 | `mvn test` / `package` / OWASP / `npm build:prod` | **未执行**（后端工具缺失；前端构建留待有依赖网络时补录） |
+| 2026-07-21 | `mvn test` / `package` / OWASP | **未执行**（环境无 Java/Maven） |
+| 2026-07-21 | `npm --prefix ruoyi-ui install --no-package-lock --ignore-scripts` | 成功：added 1476 packages in ~28s；大量 deprecated 警告（含 Vue2 EOL、highlight.js 9.x、request 等）；**未生成** package-lock.json |
+| 2026-07-21 | `npm --prefix ruoyi-ui run build:prod` | 成功：`DONE Build complete`；产物 `ruoyi-ui/dist` 约 7.3M（gitignore，未入库） |
+| 2026-07-21 | `npm --prefix ruoyi-ui audit --omit=dev` | 失败：`ENOLOCK`（仓库无 lockfile，按计划不提交 lockfile） |
 
 ## 范围限制
 
@@ -96,4 +99,4 @@
 3. 前端无 lockfile，未为审计生成 lockfile。
 4. 未做在线渗透与浏览器动态 XSS/CORS 复现。
 5. 条件性风险需结合真实部署配置确认。
-6. 前端生产构建与 npm audit 尚未在本轮跑通，SEC-012 保持未能动态验证。
+6. 前端 `build:prod` 已通过；`npm audit` 因无 lockfile 无法执行；后端 Maven/OWASP 仍未执行，SEC-012 保持未能动态验证（供应链）。

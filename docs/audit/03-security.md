@@ -209,7 +209,9 @@
 | 检查 | 结果 |
 | --- | --- |
 | `mvn dependency:tree` / OWASP | 未能执行（无 Maven） |
-| `npm audit` | 无 lockfile，计划后续记录限制 |
+| `npm install --no-package-lock --ignore-scripts` | 2026-07-21 成功，1476 packages；deprecated 含 Vue 2 EOL、highlight.js 9.x 等 |
+| `npm run build:prod` | 2026-07-21 成功，`dist` 约 7.3M（未入库） |
+| `npm audit --omit=dev` | 失败：`ENOLOCK`（无 lockfile，未生成 lockfile） |
 | 直接依赖版本 | 见 `pom.xml` 属性与 `ruoyi-ui/package.json`（如 axios 0.30.3、element-ui 2.15.14） |
 | 测试 | 无 `src/test` |
 
@@ -229,5 +231,5 @@
 1. 无 JDK/Maven：无法编译、测试、依赖树与 OWASP 扫描。  
 2. 未连接目标 MySQL/Redis 做在线利用验证。  
 3. 未启动完整前后端做浏览器 CORS/XSS 动态复现。  
-4. 前端未执行 `build:prod`（保留至验证任务）。  
+4. 前端 `build:prod` 已通过；`npm audit` 仍因无 lockfile 不可用。
 5. 所有“条件性风险”需在实际部署配置确认后升级为已确认或降级关闭。
