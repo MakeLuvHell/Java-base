@@ -76,6 +76,7 @@
 | [02-frontend-ui.md](./02-frontend-ui.md) | 前端结构、UI 与配色 |
 | [03-security.md](./03-security.md) | 安全审计与风险台账 |
 | [04-remediation-roadmap.md](./04-remediation-roadmap.md) | 整改优先级与回归验证 |
+| [../guides/api-docs-swagger.md](../guides/api-docs-swagger.md) | API 文档与 Swagger 在线调试使用说明 |
 
 ## 验证记录
 
