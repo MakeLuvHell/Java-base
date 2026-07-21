@@ -349,6 +349,7 @@ Swagger 在菜单中使用同一 `VUE_APP_BASE_API` 前缀拼接 `/swagger-ui/in
 | [docs/audit/01-architecture.md](../audit/01-architecture.md) | 系统架构与请求链路 |
 | [docs/audit/03-security.md](../audit/03-security.md) | 安全审计（含 swagger 暴露 SEC-003） |
 | [docs/audit/04-remediation-roadmap.md](../audit/04-remediation-roadmap.md) | 整改路线中关闭/收敛文档暴露的建议 |
+| [docs/guides/ci-cd-pipeline.md](./ci-cd-pipeline.md) | CI/CD 与工程流水线（构建/测试/扫描/发布） |
 | 项目根 [README.md](../../README.md) | 官方运行与部署说明 |
 
 ---

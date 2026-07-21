@@ -29,7 +29,7 @@
 | 7 | SEC-010 | 公告等富文本服务端消毒；收紧 XSS excludes；审查 `v-html` | `application.yml` xss；notice 服务；前端 DetailView/Editor | 部分合法 HTML 标签可能被剥除 | XSS 样本不执行；正常公告可显示 |
 | 8 | SEC-008 | 复核任务白名单包；任务变更双人审计；禁止危险 bean | `Constants.JOB_*`；`SysJobController`；运维制度 | 自定义任务包需加入白名单 | 非法 invokeTarget 被拒 |
 | 9 | SEC-006 | 审计所有 `${}`；防止用户输入进入 dataScope；长期改结构化条件 | Mapper XML；`DataScopeAspect` | 需回归数据权限范围 | 各角色数据范围用例 |
-| 10 | SEC-012 | CI：JDK17 `mvn package`、OWASP Dependency-Check、锁定前端依赖策略与 audit | CI 配置；不强制提交业务代码 | 构建时间增加 | CI 绿；报告归档 |
+| 10 | SEC-012 | CI：JDK17 `mvn package`、OWASP Dependency-Check、锁定前端依赖策略与 audit（操作见 [ci-cd-pipeline.md](../guides/ci-cd-pipeline.md)） | CI 配置；不强制提交业务代码 | 构建时间增加 | CI 绿；报告归档 |
 
 ## 持续改进（P3）
 
