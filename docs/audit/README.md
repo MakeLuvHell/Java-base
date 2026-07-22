@@ -78,6 +78,7 @@
 | [04-remediation-roadmap.md](./04-remediation-roadmap.md) | 整改优先级与回归验证 |
 | [../guides/api-docs-swagger.md](../guides/api-docs-swagger.md) | API 文档与 Swagger 在线调试使用说明 |
 | [../guides/ci-cd-pipeline.md](../guides/ci-cd-pipeline.md) | CI/CD 概念、作用与本仓库工程流水线操作指南 |
+| [../intern/README.md](../intern/README.md) | 实习生带教手册、学习路径与任务书 |
 
 ## 验证记录
 
