@@ -59,10 +59,12 @@
 
 1. 用 [03-task-template.md](./03-task-template.md)，验收可勾选。
 2. **池子里的小单**（T01–T04 等）建议 ≤ 2 人日；**周任务包** W1/W2 按 5 天节奏，不要和「≤2 人日」混为一谈。
-3. 第 1 周**只发 W1**；W1 通过后再发 W2，避免任务过载。
+3. **按周解锁任务书：** 只发当前周；W1→W2→W3→W4，避免一次甩四周。
 4. 对零基础：开营消息里写死 `admin`/`admin123`、端口、库名；指向 `07` + `08` 再进任务书。
-5. 发 W2 时钉死范围：**默认仅 P0 置顶**；字段/排序/权限用任务书推荐默认；提醒勿改 `isRead`。
-6. 安全 P1 修复默认**结对**，并对照 [04-remediation-roadmap.md](../audit/04-remediation-roadmap.md)。
+5. 发 W2：钉死 **仅 P0 置顶**；勿改 `isRead`。
+6. 发 W3：钉死 **同模块加深**（筛选+导出+日志+文档）；导出对照 post；新权限 `system:notice:export`；默认不做 DataScope。
+7. 发 W4：以 Demo/笔记/合入为主，控制新需求。
+8. 安全 P1 修复默认**结对**，并对照 [04-remediation-roadmap.md](../audit/04-remediation-roadmap.md)。
 
 ## 账号与数据准备（带教人）
 

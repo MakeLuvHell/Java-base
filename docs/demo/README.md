@@ -14,8 +14,10 @@
 | --- | --- |
 | [W1-login-reference.md](./W1-login-reference.md) | W1 登录 4 问、用户列表路径表、Swagger 记录 **范例** |
 | [W1-oral-qa.md](./W1-oral-qa.md) | [02-reading-list](../intern/02-reading-list.md) 12 道口头题参考答 |
-| [W2-notice-reference.md](./W2-notice-reference.md) | W2 设计范例、实现要点、验收对照、常见错解 |
-| [scoring-rubric.md](./scoring-rubric.md) | W1/W2 打分与「合格线 / 优秀」 |
+| [W2-notice-reference.md](./W2-notice-reference.md) | W2 置顶：设计范例、实现要点、验收对照 |
+| [W3-notice-reference.md](./W3-notice-reference.md) | W3 筛选/导出/日志/文档：设计与 Review |
+| [W4-wrapup-reference.md](./W4-wrapup-reference.md) | W4 Demo 与笔记评分 |
+| [scoring-rubric.md](./scoring-rubric.md) | 各周打分与「合格线 / 优秀」 |
 
 ## 使用建议
 
@@ -30,4 +32,6 @@
 | --- | --- |
 | `docs/intern/tasks/W1-login-and-user-list.md` | W1-login-reference + W1-oral-qa |
 | `docs/intern/tasks/W2-notice-enhancement.md` | W2-notice-reference |
+| `docs/intern/tasks/W3-notice-deepen.md` | W3-notice-reference |
+| `docs/intern/tasks/W4-demo-and-wrapup.md` | W4-wrapup-reference |
 | `docs/intern/02-reading-list.md` 口头题 | W1-oral-qa |

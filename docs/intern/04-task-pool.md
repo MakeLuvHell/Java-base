@@ -21,10 +21,19 @@
 | T13 | 列表导出字段扩展或查询条件扩展 | 查询对象、Excel 导出惯例 |
 | T14 | 对照现有模块写「本模块 README」（接口表 + 表字段） | 文档能力 |
 
-**首选任务书：** [tasks/W2-notice-enhancement.md](./tasks/W2-notice-enhancement.md)  
+**第 2 周任务书：** [tasks/W2-notice-enhancement.md](./tasks/W2-notice-enhancement.md)  
 
 **下达 W2 时建议钉死（可复制进聊天）：**  
 「只做 P0 置顶；字段 `is_top` char(1) 默认 0；排序置顶优先；权限复用 `system:notice:edit`；不要改 isRead/已读；第 1 天先交设计再写码。」
+
+**第 3 周任务书（W2 通过后）：** [tasks/W3-notice-deepen.md](./tasks/W3-notice-deepen.md)  
+
+覆盖：T12 操作日志说明 + T13 筛选/导出 + T14 模块 README；新权限 `system:notice:export`。  
+
+**下达 W3 时建议钉死：**  
+「继续公告模块；P0=置顶筛选+导出+日志说明+模块文档；导出权限 system:notice:export；对照岗位 post 导出；第 1 天先交设计；不做 DataScope。」
+
+**第 4 周任务书：** [tasks/W4-demo-and-wrapup.md](./tasks/W4-demo-and-wrapup.md)
 
 ## ★★★ 进阶（2–5 天，需带教审设计）
 

@@ -362,10 +362,12 @@ ALTER TABLE sys_notice ADD COLUMN is_top char(1) DEFAULT '0' COMMENT '是否置�
 
 ---
 
-## 11. 完成后的可选延伸（第 3 周，勿与本周 P0 混做）
+## 11. 完成后
 
-- 读审计文档 SEC-010：公告富文本与 XSS 注意点（只写笔记，可不改代码）  
-- 尝试为 notice 查询加一个很简单的测试骨架（问导师测试放哪）  
-- 若导师同意：P1 按置顶筛选  
+导师确认 W2 **通过** 后，再领取：
 
-下一阶段任务由导师从 [04-task-pool.md](../04-task-pool.md) 指定；没有新任务书时用 [03-task-template.md](../03-task-template.md) 下达。
+→ [W3-notice-deepen.md](./W3-notice-deepen.md)（筛选 + 导出 + 操作日志 + 模块说明）
+
+**不要自己提前做 W3 导出/菜单 SQL**，除非导师提前下达。
+
+可选阅读（勿与本周 P0 混做）：审计 SEC-010 公告 XSS 注意点（只写笔记即可）。
