@@ -34,10 +34,11 @@
 | 2 | `docs/intern/08-local-setup-step-by-step.md` | **逐步装环境**（建议边装边勾清单） |
 | 3 | `docs/intern/05-environment-checklist.md` | 环境打勾清单 |
 | 4 | `docs/intern/tasks/W1-login-and-user-list.md` | **本周唯一任务书**（按天执行） |
-| 5 | 根目录 `README.md` | 项目是什么 |
-| 6 | `CONTEXT.md` | 术语与模块（可先扫，装环境后再精读） |
-| 7 | `docs/audit/01-architecture.md` | 登录/请求链路（写作业时对照） |
-| 8 | `docs/guides/api-docs-swagger.md` | 第 4～5 天用 Swagger |
+| 5 | `docs/intern/09-module-map.md` | **登录后扫菜单**：各模块功能与周任务对应 |
+| 6 | 根目录 `README.md` | 项目是什么 |
+| 7 | `CONTEXT.md` | 术语与模块（可先扫，装环境后再精读） |
+| 8 | `docs/audit/01-architecture.md` | 登录/请求链路（写作业时对照） |
+| 9 | `docs/guides/api-docs-swagger.md` | 第 4～5 天用 Swagger |
 
 总览导航：`docs/intern/README.md`。
 

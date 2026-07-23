@@ -8,6 +8,7 @@
 | --- | --- | --- | --- |
 | 0 | [07-zero-basics.md](./07-zero-basics.md) | **零基础必读**：前后端、Token、三层权限大白话 | 1–2 h |
 | 0b | [08-local-setup-step-by-step.md](./08-local-setup-step-by-step.md) + [05-environment-checklist.md](./05-environment-checklist.md) | 装环境并打勾（与阅读穿插） | 第 1～2 天 |
+| 0c | [09-module-map.md](./09-module-map.md) | 登录后扫菜单：模块功能、代码位置、与 W1～W4 对应 | 0.5～1 h（可边点边看） |
 | 1 | 根 `README.md` | 产品功能、技术栈 | 0.5 h |
 | 2 | 上游文档 [http://doc.ruoyi.vip](http://doc.ruoyi.vip)（可选） | 官方功能说明 | 1–2 h |
 | 3 | [CONTEXT.md](../../CONTEXT.md) | 术语：LoginUser、JWT+Redis、模块边界 | 2–3 h（可先扫） |

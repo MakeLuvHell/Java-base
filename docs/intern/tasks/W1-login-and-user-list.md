@@ -60,9 +60,10 @@
 | 2 | [08-local-setup-step-by-step.md](../08-local-setup-step-by-step.md) | 一步步装环境 | 边做边看 |
 | 3 | [05-environment-checklist.md](../05-environment-checklist.md) | 勾选进度 | 贯穿全程 |
 | 4 | 根目录 `README.md` | 项目是谁、有什么功能 | 30 min |
-| 5 | [CONTEXT.md](../../../CONTEXT.md) | 模块名、权限术语（可先扫标题） | 1～2 h 扫读 |
-| 6 | [01-architecture.md](../../audit/01-architecture.md) 的登录/请求章节 | 跟作业时对照 | 写作业时打开 |
-| 7 | [api-docs-swagger.md](../../guides/api-docs-swagger.md) | 第 5 天用 | 第 5 天 |
+| 5 | [09-module-map.md](../09-module-map.md) | 登录后扫菜单：各模块干什么、和哪周有关 | 边点边看 0.5～1 h |
+| 6 | [CONTEXT.md](../../../CONTEXT.md) | 模块名、权限术语（可先扫标题） | 1～2 h 扫读 |
+| 7 | [01-architecture.md](../../audit/01-architecture.md) 的登录/请求章节 | 跟作业时对照 | 写作业时打开 |
+| 8 | [api-docs-swagger.md](../../guides/api-docs-swagger.md) | 第 5 天用 | 第 5 天 |
 
 阅读方法与口头题见 [02-reading-list.md](../02-reading-list.md)。
 

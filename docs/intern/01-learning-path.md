@@ -15,7 +15,8 @@
 在装环境前或同时阅读：
 
 1. [07-zero-basics.md](./07-zero-basics.md) — 前后端、Token、三层权限大白话  
-2. [08-local-setup-step-by-step.md](./08-local-setup-step-by-step.md) + [05-environment-checklist.md](./05-environment-checklist.md)
+2. [08-local-setup-step-by-step.md](./08-local-setup-step-by-step.md) + [05-environment-checklist.md](./05-environment-checklist.md)  
+3. 登录成功后对照 [09-module-map.md](./09-module-map.md) 扫一遍侧边栏（先建立地图，不必背）
 
 **本机默认（仅学习）：** 后端 `8080`；前端常见 `http://localhost`；管理员 `admin` / `admin123`；库名建议 `ry-vue`。
 
@@ -124,10 +125,10 @@ W1 跟读登录/用户列表
 ## 阶段与文档映射
 
 ```text
-入门     → CONTEXT.md + 01-architecture.md + Swagger 指南
-动手     → 对照 system/notice 现有实现做垂直切片
-加深     → 02-frontend-ui / 03-security / CI 指南（选读）
-收口     → 笔记 + Demo；可选回馈 docs/guides
+入门     → 07 零基础 + 09 模块地图 + CONTEXT + 01-architecture + Swagger
+动手     → 对照 system/notice 现有实现做垂直切片（W2）
+加深     → 同模块筛选/导出/日志（W3）；02-frontend-ui / 03-security / CI（选读）
+收口     → 笔记 + Demo（W4）；可选回馈 docs/guides
 ```
 
 ## 成功标准（带教人打分参考）

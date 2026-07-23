@@ -125,10 +125,11 @@ mysql -u root -p -e "USE \`ry-vue\`; SELECT user_id, user_name FROM sys_user LIM
 | --- | --- | --- |
 | G1 | [07-zero-basics.md](./07-zero-basics.md) | [ ] |
 | G2 | [08-local-setup-step-by-step.md](./08-local-setup-step-by-step.md)（装环境时对照） | [ ] |
-| G3 | `CONTEXT.md`（可先扫后精读） | [ ] |
-| G4 | `docs/audit/01-architecture.md`（登录章节） | [ ] |
-| G5 | `docs/guides/api-docs-swagger.md` | [ ] |
-| G6 | `docs/intern/README.md` + [W1 任务书](./tasks/W1-login-and-user-list.md) | [ ] |
+| G3 | [09-module-map.md](./09-module-map.md)（登录后扫菜单，边点边看） | [ ] |
+| G4 | `CONTEXT.md`（可先扫后精读） | [ ] |
+| G5 | `docs/audit/01-architecture.md`（登录章节） | [ ] |
+| G6 | `docs/guides/api-docs-swagger.md` | [ ] |
+| G7 | `docs/intern/README.md` + [W1 任务书](./tasks/W1-login-and-user-list.md) | [ ] |
 
 ---
 
