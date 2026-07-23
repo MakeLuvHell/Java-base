@@ -15,13 +15,16 @@
 
 | ID | 任务 | 训练点 |
 | --- | --- | --- |
-| T10 | **通知公告增强**（置顶 / 过期 / 筛选）— 首选 | CRUD 全链路 | 
+| T10 | **通知公告增强（置顶）— 首选**；默认只做 P0；筛选/过期为 P1 | CRUD 全链路 | 
 | T11 | 新菜单 + 权限字符 + 按钮级权限（可挂在 tool 或 system 下） | 菜单 SQL、`@PreAuthorize` |
 | T12 | 操作日志中定位并说明自己接口是否被记录 | 日志注解 / AOP |
 | T13 | 列表导出字段扩展或查询条件扩展 | 查询对象、Excel 导出惯例 |
 | T14 | 对照现有模块写「本模块 README」（接口表 + 表字段） | 文档能力 |
 
-**首选任务书：** [tasks/W2-notice-enhancement.md](./tasks/W2-notice-enhancement.md)
+**首选任务书：** [tasks/W2-notice-enhancement.md](./tasks/W2-notice-enhancement.md)  
+
+**下达 W2 时建议钉死（可复制进聊天）：**  
+「只做 P0 置顶；字段 `is_top` char(1) 默认 0；排序置顶优先；权限复用 `system:notice:edit`；不要改 isRead/已读；第 1 天先交设计再写码。」
 
 ## ★★★ 进阶（2–5 天，需带教审设计）
 

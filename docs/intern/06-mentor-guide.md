@@ -58,9 +58,11 @@
 ## 任务下达原则
 
 1. 用 [03-task-template.md](./03-task-template.md)，验收可勾选。
-2. 单任务 ≤ 2 人日。
-3. 第 1 周只发 W1；第 2 周再发 W2，避免任务过载。
-4. 安全 P1 修复默认**结对**，并对照 [04-remediation-roadmap.md](../audit/04-remediation-roadmap.md)。
+2. **池子里的小单**（T01–T04 等）建议 ≤ 2 人日；**周任务包** W1/W2 按 5 天节奏，不要和「≤2 人日」混为一谈。
+3. 第 1 周**只发 W1**；W1 通过后再发 W2，避免任务过载。
+4. 对零基础：开营消息里写死 `admin`/`admin123`、端口、库名；指向 `07` + `08` 再进任务书。
+5. 发 W2 时钉死范围：**默认仅 P0 置顶**；字段/排序/权限用任务书推荐默认；提醒勿改 `isRead`。
+6. 安全 P1 修复默认**结对**，并对照 [04-remediation-roadmap.md](../audit/04-remediation-roadmap.md)。
 
 ## 账号与数据准备（带教人）
 
@@ -85,13 +87,17 @@
 | Swagger | `docs/guides/api-docs-swagger.md` |
 | CI 概念 | `docs/guides/ci-cd-pipeline.md` |
 | 带教本册 | `docs/intern/*` |
+| **任务参考答案 / 评分** | **`docs/demo/*`（仅导师；勿整包发给实习生）** |
 
 **已知文档缺口（可让实习生反哺）：** 根 README 对本仓 docs 的导航、完整 `local-setup` 图文。见审计结论；加分任务 P04。
 
 ## 开营检查（带教人自己）
 
-- [ ] 已发 [00-onboarding-message.md](./00-onboarding-message.md)
-- [ ] 已约每日站会时间
-- [ ] 本地能演示一版可运行系统（或远程开发机）
+- [ ] 已发 [00-onboarding-message.md](./00-onboarding-message.md)（改好日期、仓库地址、站会时间）
+- [ ] 只附 W1 任务书，未同时甩 W2 全文
+- [ ] 已约每日站会时间（10 分钟）
+- [ ] 本地能演示一版可运行系统（或远程开发机）：登录 + 用户管理
+- [ ] 已确认本仓 SQL 导入后 `admin`/`admin123` 仍可用（或已在消息中写明实际密码）
 - [ ] 已准备 Review 时段
-- [ ] 已说明分支与红线
+- [ ] 已说明分支命名与红线（密钥、公网、生成器、>1 小时必问）
+- [ ] （为 W2）准备无 `system:notice:edit` 测试账号或指导自建步骤

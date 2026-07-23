@@ -6,14 +6,18 @@
 
 | 顺序 | 材料 | 目的 | 建议时长 |
 | --- | --- | --- | --- |
-| 1 | 根 `README.md` | 产品功能、技术栈版本分支 | 0.5 h |
+| 0 | [07-zero-basics.md](./07-zero-basics.md) | **零基础必读**：前后端、Token、三层权限大白话 | 1–2 h |
+| 0b | [08-local-setup-step-by-step.md](./08-local-setup-step-by-step.md) + [05-environment-checklist.md](./05-environment-checklist.md) | 装环境并打勾（与阅读穿插） | 第 1～2 天 |
+| 1 | 根 `README.md` | 产品功能、技术栈 | 0.5 h |
 | 2 | 上游文档 [http://doc.ruoyi.vip](http://doc.ruoyi.vip)（可选） | 官方功能说明 | 1–2 h |
-| 3 | [CONTEXT.md](../../CONTEXT.md) | 术语：LoginUser、JWT+Redis、模块边界 | 2–3 h |
+| 3 | [CONTEXT.md](../../CONTEXT.md) | 术语：LoginUser、JWT+Redis、模块边界 | 2–3 h（可先扫） |
 | 4 | [docs/audit/01-architecture.md](../audit/01-architecture.md) | 模块依赖、登录/路由/请求链路 | 0.5–1 天 |
-| 5 | [docs/guides/api-docs-swagger.md](../guides/api-docs-swagger.md) | 打开文档、带 Token 调试 | 2–3 h |
+| 5 | [docs/guides/api-docs-swagger.md](../guides/api-docs-swagger.md) | 打开文档、带 Token 调试 | 2–3 h（W1 第 5 天） |
 | 6 | [docs/audit/02-frontend-ui.md](../audit/02-frontend-ui.md)（扫读） | 前端结构、主题、权限指令观察 | 0.5 天 |
 | 7 | [docs/audit/03-security.md](../audit/03-security.md) + [04-remediation-roadmap.md](../audit/04-remediation-roadmap.md) | 风险台账与整改优先级（**后半程**） | 第 2–3 周 |
 | 8 | [docs/guides/ci-cd-pipeline.md](../guides/ci-cd-pipeline.md) | CI/CD 概念与本仓落地思路（按需） | 第 3 周 |
+
+**第 1 周任务书（边读边做）：** [tasks/W1-login-and-user-list.md](./tasks/W1-login-and-user-list.md)
 
 过程文档（一般**不必**精读）：`docs/superpowers/`（审计设计与执行计划）。
 
