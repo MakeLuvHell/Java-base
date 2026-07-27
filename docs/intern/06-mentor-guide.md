@@ -90,7 +90,6 @@
 | CI 概念 | `docs/guides/ci-cd-pipeline.md` |
 | 带教本册 | `docs/intern/*` |
 | **系统模块地图（扫菜单）** | **`docs/intern/09-module-map.md`** |
-| **任务参考答案 / 评分** | **`docs/demo/*`（仅导师；勿整包发给实习生）** |
 
 **已知文档缺口（可让实习生反哺）：** 根 README 对本仓 docs 的导航、完整 `local-setup` 图文。见审计结论；加分任务 P04。
 

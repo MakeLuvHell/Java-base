@@ -68,17 +68,6 @@
 
 ---
 
-## 带教人参考答案（勿整包发给实习生）
-
-验收与打分见 **[docs/demo/](../demo/README.md)**：
-
-- W1 登录/路径表/Swagger 范例  
-- 12 道口头题参考答  
-- W2 设计 OK 稿与 Review 清单  
-- 评分量规  
-
----
-
 ## 带教人 5 分钟开营检查
 
 - [ ] 已发 [00-onboarding-message.md](./00-onboarding-message.md)（改好日期与仓库地址）  
@@ -87,4 +76,3 @@
 - [ ] 已约每日 10 分钟站会  
 - [ ] 已说明：`admin`/`admin123`、分支命名、红线、>1 小时必问  
 - [ ] （为第 2 周）准备无 `system:notice:edit` 的测试账号思路  
-- [ ] 验收时打开 [docs/demo](../demo/README.md) 对照，不把答案目录转发给学员  

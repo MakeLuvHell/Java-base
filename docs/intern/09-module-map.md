@@ -253,4 +253,3 @@ Swagger 指南：`docs/guides/api-docs-swagger.md`。
 | [tasks/W3-notice-deepen.md](./tasks/W3-notice-deepen.md) | 公告筛选/导出/日志/文档 |
 | [tasks/W4-demo-and-wrapup.md](./tasks/W4-demo-and-wrapup.md) | Demo 收口 |
 | [04-task-pool.md](./04-task-pool.md) | 加餐任务池 |
-| [docs/demo/](../demo/README.md) | **导师**参考答案（勿整包发给学员） |

@@ -43,6 +43,9 @@ nbdist/
 *.swp
 .worktrees/
 
+# Mentor-only answer keys — keep local, do not publish
+docs/demo/
+
 !*/build/*.java
 !*/build/*.html
 !*/build/*.xml
