@@ -1,0 +1,59 @@
+version: '3.8'
+name: local-databases
+services:
+  postgres:
+    image: postgres:15
+    container_name: pgsql
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ry-vue
+      PGDATA: /var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgsql-data:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+    networks:
+      - database_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_dev
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      REDIS_PASSWORD: -2y@Z6nRyiW7Rt@
+    command:
+      sh -c "redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+    networks:
+      - database_net
+
+volumes:
+  pgsql-data:
+  redis-data:
+
+networks:
+  database_net:
+    name: local_database_net
+    driver: bridge
