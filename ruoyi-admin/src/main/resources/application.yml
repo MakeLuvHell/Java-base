@@ -129,6 +129,10 @@ springdoc:
       display-name: '测试模块'
       paths-to-match: '/**'
       packages-to-scan: com.ruoyi.web.controller.tool
+    - group: 'system'
+      display-name: '系统模块'
+      paths-to-match: '/**'
+      packages-to-scan: com.ruoyi.web.controller.system
 
 # 防盗链配置
 referer:
