@@ -1122,7 +1122,6 @@
         </el-card>
       </el-col>
     </el-row>
-  </div>
     <el-dialog
       title="系统公告"
       :visible.sync="noticeDialogVisible"
@@ -1180,6 +1179,9 @@ export default {
       const notice = this.currentNotice;
       if (notice && notice.noticeId) {
         markNoticeRead(notice.noticeId).then(() => {
+          this.noticeIndex++;
+          setTimeout(() => this.showNotice(this.noticeIndex), 300);
+        }).catch(() => {
           this.noticeIndex++;
           setTimeout(() => this.showNotice(this.noticeIndex), 300);
         });
@@ -1250,13 +1252,13 @@ export default {
       padding-inline-start: 40px;
     }
   }
-}
-.notice-content {
-  max-height: 360px;
-  overflow-y: auto;
-  line-height: 1.8;
-  font-size: 14px;
-  color: #333;
+  .notice-content {
+    max-height: 360px;
+    overflow-y: auto;
+    line-height: 1.8;
+    font-size: 14px;
+    color: #333;
+  }
 }
 </style>
 
