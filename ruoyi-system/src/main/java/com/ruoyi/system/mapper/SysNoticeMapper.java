@@ -1,6 +1,7 @@
 package com.ruoyi.system.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.system.domain.SysNotice;
 
 /**
@@ -57,4 +58,12 @@ public interface SysNoticeMapper
      * @return 结果
      */
     public int deleteNoticeByIds(Long[] noticeIds);
+
+    /**
+     * 查询最新一条当前用户未读的滚动公告
+     *
+     * @param userId 用户ID
+     * @return 滚动公告
+     */
+    public SysNotice selectTopMarquee(@Param("userId") Long userId);
 }

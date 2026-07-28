@@ -82,6 +82,11 @@
           <dict-tag :options="dict.type.sys_notice_type" :value="scope.row.noticeType"/>
         </template>
       </el-table-column>
+      <el-table-column label="展示形式" align="center" prop="displayType" width="100">
+        <template slot-scope="scope">
+          <dict-tag :options="dict.type.sys_notice_display" :value="scope.row.displayType"/>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" align="center" prop="status" width="100">
         <template slot-scope="scope">
           <dict-tag :options="dict.type.sys_notice_status" :value="scope.row.status"/>
@@ -150,6 +155,14 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
+            <el-form-item label="展示形式">
+              <el-radio-group v-model="form.displayType">
+                <el-radio label="0">弹窗</el-radio>
+                <el-radio label="1">顶部滚动条</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
             <el-form-item label="状态">
               <el-radio-group v-model="form.status">
                 <el-radio
@@ -186,7 +199,7 @@ import { listNotice, getNotice, delNotice, addNotice, updateNotice } from "@/api
 export default {
   name: "Notice",
   components: { NoticeDetailView, ReadUsersDialog },
-  dicts: ['sys_notice_status', 'sys_notice_type'],
+  dicts: ['sys_notice_status', 'sys_notice_type', 'sys_notice_display'],
   data() {
     return {
       // 遮罩层
@@ -253,6 +266,7 @@ export default {
         noticeTitle: undefined,
         noticeType: undefined,
         noticeContent: undefined,
+        displayType: "0",
         status: "0"
       }
       this.resetForm("form")

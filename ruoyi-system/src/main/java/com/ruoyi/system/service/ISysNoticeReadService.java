@@ -32,9 +32,10 @@ public interface ISysNoticeReadService
      *
      * @param userId 用户ID
      * @param limit  最多返回条数
+     * @param displayType 展示形式
      * @return 带 isRead 标记的公告列表
      */
-    public List<SysNotice> selectNoticeListWithReadStatus(Long userId, int limit);
+    public List<SysNotice> selectNoticeListWithReadStatus(Long userId, int limit, String displayType);
 
     /**
      * 批量标记已读

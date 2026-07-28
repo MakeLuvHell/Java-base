@@ -77,3 +77,11 @@ export function listNoticeReadUsers(query) {
     params: query
   })
 }
+
+// 获取当前用户最新未读滚动公告
+export function listNoticeTopMarquee() {
+  return request({
+    url: '/system/notice/listTopMarquee',
+    method: 'get'
+  })
+}

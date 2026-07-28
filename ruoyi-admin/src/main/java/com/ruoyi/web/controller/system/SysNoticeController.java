@@ -87,19 +87,32 @@ public class SysNoticeController extends BaseController
     }
 
     /**
-     * 首页顶部公告列表（返回全部正常公告，带当前用户已读标记，最多5条）
+     * 首页顶部公告列表（返回全部正常弹窗公告，带当前用户已读标记，最多5条）
      */
-    @Operation(summary = "获取当前用户未读公告列表")
+    @Operation(summary = "获取当前用户未读弹窗公告列表")
     @GetMapping("/listTop")
     @ResponseBody
     public AjaxResult listTop()
     {
         Long userId = getUserId();
-        List<SysNotice> list = noticeReadService.selectNoticeListWithReadStatus(userId, 5);
+        List<SysNotice> list = noticeReadService.selectNoticeListWithReadStatus(userId, 5, "0");
         long unreadCount = list.stream().filter(n -> !n.getIsRead()).count();
         AjaxResult result = AjaxResult.success(list);
         result.put("unreadCount", unreadCount);
         return result;
+    }
+
+    /**
+     * 获取当前用户最新未读滚动公告
+     */
+    @Operation(summary = "获取当前用户最新未读滚动公告")
+    @GetMapping("/listTopMarquee")
+    @ResponseBody
+    public AjaxResult listTopMarquee()
+    {
+        Long userId = getUserId();
+        SysNotice notice = noticeService.selectTopMarquee(userId);
+        return success(notice);
     }
 
     /**
