@@ -22,12 +22,15 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.system.domain.SysNotice;
 import com.ruoyi.system.service.ISysNoticeReadService;
 import com.ruoyi.system.service.ISysNoticeService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * 公告 信息操作处理
  * 
  * @author ruoyi
  */
+@Tag(name = "通知公告")
 @RestController
 @RequestMapping("/system/notice")
 public class SysNoticeController extends BaseController
@@ -86,6 +89,7 @@ public class SysNoticeController extends BaseController
     /**
      * 首页顶部公告列表（返回全部正常公告，带当前用户已读标记，最多5条）
      */
+    @Operation(summary = "获取当前用户未读公告列表")
     @GetMapping("/listTop")
     @ResponseBody
     public AjaxResult listTop()
@@ -101,6 +105,7 @@ public class SysNoticeController extends BaseController
     /**
      * 标记公告已读
      */
+    @Operation(summary = "标记公告为已读")
     @PostMapping("/markRead")
     @ResponseBody
     public AjaxResult markRead(Long noticeId)
@@ -113,6 +118,7 @@ public class SysNoticeController extends BaseController
     /**
      * 批量标记已读
      */
+    @Operation(summary = "批量标记公告已读")
     @PostMapping("/markReadAll")
     @ResponseBody
     public AjaxResult markReadAll(String ids)
