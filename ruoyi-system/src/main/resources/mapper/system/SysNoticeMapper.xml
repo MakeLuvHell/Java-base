@@ -96,10 +96,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         from sys_notice n
         where n.status = '0'
           and n.display_type = '1'
-          and not exists (
-              select 1 from sys_notice_read r
-              where r.notice_id = n.notice_id and r.user_id = #{userId}
-          )
         order by n.create_time desc
         limit 1
     </select>

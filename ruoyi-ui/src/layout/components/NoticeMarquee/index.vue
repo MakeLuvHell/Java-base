@@ -1,5 +1,5 @@
 <template>
-  <div v-if="notice" class="notice-marquee" @click="handleClose">
+  <div v-if="notice && !hidden" class="notice-marquee">
     <div class="marquee-wrapper">
       <span class="marquee-label">公告</span>
       <span class="marquee-text">{{ notice.noticeTitle }}：{{ stripHtml(notice.noticeContent) }}</span>
@@ -9,12 +9,13 @@
 </template>
 
 <script>
-import { listNoticeTopMarquee, markNoticeRead } from "@/api/system/notice";
+import { listNoticeTopMarquee } from "@/api/system/notice";
 
 export default {
   name: "NoticeMarquee",
   data() {
     return {
+      hidden: false,
       notice: null
     }
   },
@@ -35,13 +36,7 @@ export default {
       return div.textContent || div.innerText || "";
     },
     handleClose() {
-      if (this.notice && this.notice.noticeId) {
-        markNoticeRead(this.notice.noticeId).then(() => {
-          this.notice = null;
-        }).catch(() => {
-          this.notice = null;
-        });
-      }
+      this.hidden = true;
     }
   }
 }
