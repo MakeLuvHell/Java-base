@@ -19,7 +19,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
     
     <sql id="selectNoticeVo">
-        select notice_id, notice_title, notice_type, cast(notice_content as char) as notice_content, status, display_type, create_by, create_time, update_by, update_time, remark 
+        select notice_id, notice_title, notice_type, notice_content, status, display_type, create_by, create_time, update_by, update_time, remark 
 		from sys_notice
     </sql>
     
@@ -92,7 +92,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
     
     <select id="selectTopMarquee" resultMap="SysNoticeResult">
-        select n.notice_id, n.notice_title, n.notice_type, cast(n.notice_content as char) as notice_content, n.status, n.display_type, n.create_by, n.create_time
+        select n.notice_id, n.notice_title, n.notice_type, n.notice_content, n.status, n.display_type, n.create_by, n.create_time
         from sys_notice n
         where n.status = '0'
           and n.display_type = '1'
