@@ -170,3 +170,306 @@ methods: {
 1. **后端调试**：通过 Swagger UI（`/swagger-ui.html`）选择「系统模块」分组，直接调用 `listTop` 和 `markRead` 接口
 2. **前端验证**：登录后进入首页，观察弹窗是否自动弹出；关闭后检查是否不再重复弹出
 3. **数据库准备**：在 `sys_notice` 表插入测试数据，登录用户在 `sys_notice_read` 表中无对应的已读记录
+
+---
+
+## 功能扩展：顶部滚动公告条
+
+### 概述
+
+在弹窗公告基础上，新增「顶部滚动条」展示形式。管理员发布公告时可二选一（展示形式互斥），滚动公告展示在所有页面顶部的横幅区域，用户点击后标记已读消失。
+
+### 变更范围
+
+| 层 | 文件 | 操作 |
+|----|------|------|
+| 数据库 | `sys_notice` 表 | 新增 `display_type` 字段 |
+| 后端 Domain | `SysNotice.java` | 新增 `displayType` 字段 |
+| 后端 Mapper XML | `SysNoticeMapper.xml` | 增/改/查添加 `display_type` |
+| 后端 Controller | `SysNoticeController.java` | 新增 `getTopMarquee()` 接口；`listTop()` 过滤弹窗类 |
+| 后端 API | `ruoyi-ui/src/api/system/notice.js` | 新增 `listNoticeTopMarquee()` |
+| 前端组件 | `src/layout/components/NoticeMarquee/index.vue` | 新增滚动条组件 |
+| 前端布局 | `src/layout/index.vue` | 引入 `NoticeMarquee` 组件 |
+| 前端管理页 | `src/views/system/notice/index.vue` | 新增展示形式下拉框 |
+
+### 详细设计
+
+#### 1. 数据库
+
+```sql
+ALTER TABLE sys_notice ADD COLUMN display_type CHAR(1) DEFAULT '0' NOT NULL;
+COMMENT ON COLUMN sys_notice.display_type IS '展示形式（0=弹窗 1=顶部滚动条）';
+```
+
+`display_type` 与 `notice_type`（通知/公告）独立，二者正交。
+
+#### 2. 后端
+
+##### 2.1 SysNotice.java
+
+```java
+/** 展示形式（0=弹窗 1=滚动条） */
+private String displayType;
+
+public String getDisplayType() { return displayType; }
+public void setDisplayType(String displayType) { this.displayType = displayType; }
+```
+
+##### 2.2 SysNoticeMapper.xml
+
+- `SysNoticeResult` resultMap 添加 `<result property="displayType" column="display_type"/>`
+- `selectNoticeList` / `insertNotice` / `updateNotice` 均添加 `display_type` 列
+
+##### 2.3 SysNoticeController.java
+
+新增接口：
+
+```java
+/**
+ * 获取当前用户最新未读滚动公告
+ */
+@Operation(summary = "获取当前用户最新未读滚动公告")
+@GetMapping("/listTopMarquee")
+@ResponseBody
+public AjaxResult listTopMarquee()
+{
+    Long userId = getUserId();
+    SysNotice notice = noticeService.selectTopMarquee(userId);
+    return success(notice);
+}
+```
+
+修改现有 `listTop()`，增加 `display_type = '0'` 过滤条件：
+
+```java
+@Operation(summary = "获取当前用户未读弹窗公告列表")
+@GetMapping("/listTop")
+@ResponseBody
+public AjaxResult listTop()
+{
+    Long userId = getUserId();
+    // displayType = "0" 筛选弹窗类公告
+    List<SysNotice> list = noticeReadService.selectNoticeListWithReadStatus(userId, 5, "0");
+    long unreadCount = list.stream().filter(n -> !n.getIsRead()).count();
+    AjaxResult result = AjaxResult.success(list);
+    result.put("unreadCount", unreadCount);
+    return result;
+}
+```
+
+##### 2.4 ISysNoticeService.java / SysNoticeServiceImpl.java
+
+新增方法：
+
+```java
+/**
+ * 查询最新一条未读的滚动公告（display_type = '1'，当前用户未读）
+ */
+SysNotice selectTopMarquee(Long userId);
+```
+
+##### 2.5 SysNoticeMapper.xml
+
+新增查询：
+
+```xml
+<select id="selectTopMarquee" resultMap="SysNoticeResult">
+    select n.notice_id, n.notice_title, n.notice_type, n.notice_content, n.status,
+           n.create_by, n.create_time, n.display_type
+    from sys_notice n
+    where n.status = '0'
+      and n.display_type = '1'
+      and not exists (
+          select 1 from sys_notice_read r
+          where r.notice_id = n.notice_id and r.user_id = #{userId}
+      )
+    order by n.create_time desc
+    limit 1
+</select>
+```
+
+##### 2.6 SysNoticeReadMapper.xml
+
+`selectNoticeListWithReadStatus` 增加 `displayType` 参数过滤：
+
+```xml
+<select id="selectNoticeListWithReadStatus" resultType="SysNotice">
+    select
+        n.notice_id    as noticeId,
+        n.notice_title as noticeTitle,
+        n.notice_type  as noticeType,
+        n.status,
+        n.display_type as displayType,
+        n.create_by    as createBy,
+        n.create_time  as createTime,
+        case when r.notice_id is not null then true else false end as isRead
+    from sys_notice n
+    left join sys_notice_read r
+        on r.notice_id = n.notice_id and r.user_id = #{userId}
+    where n.status = '0'
+      and n.display_type = #{displayType}
+    order by n.notice_id desc
+    limit #{limit}
+</select>
+```
+
+#### 3. 前端
+
+##### 3.1 API (`src/api/system/notice.js`)
+
+```js
+export function listNoticeTopMarquee(query) {
+  return request({ url: '/system/notice/listTopMarquee', method: 'get', params: query })
+}
+```
+
+##### 3.2 公告管理页 — 展示形式下拉框
+
+在现有表单中添加（使用字典或硬编码选项）：
+
+```vue
+<el-form-item label="展示形式" prop="displayType">
+  <el-radio-group v-model="form.displayType">
+    <el-radio label="0">弹窗</el-radio>
+    <el-radio label="1">顶部滚动条</el-radio>
+  </el-radio-group>
+</el-form-item>
+```
+
+##### 3.3 NoticeMarquee 组件 (`src/layout/components/NoticeMarquee/index.vue`)
+
+```vue
+<template>
+  <div v-if="notice" class="notice-marquee" @click="handleClose">
+    <div class="marquee-wrapper">
+      <span class="marquee-label">公告</span>
+      <span class="marquee-text">{{ notice.noticeTitle }}：{{ stripHtml(notice.noticeContent) }}</span>
+    </div>
+    <i class="el-icon-close marquee-close" @click.stop="handleClose" />
+  </div>
+</template>
+
+<script>
+import { listNoticeTopMarquee, markNoticeRead } from "@/api/system/notice";
+
+export default {
+  name: "NoticeMarquee",
+  data() {
+    return { notice: null }
+  },
+  mounted() {
+    listNoticeTopMarquee().then(res => {
+      if (res.data && res.data.noticeId) {
+        this.notice = res.data;
+      }
+    });
+  },
+  methods: {
+    stripHtml(html) {
+      const div = document.createElement('div');
+      div.innerHTML = html || '';
+      return div.textContent || div.innerText || '';
+    },
+    handleClose() {
+      if (this.notice && this.notice.noticeId) {
+        markNoticeRead(this.notice.noticeId).then(() => {
+          this.notice = null;
+        }).catch(() => {
+          this.notice = null;
+        });
+      }
+    }
+  }
+}
+</script>
+
+<style scoped lang="scss">
+.notice-marquee {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: #fffbe6;
+  border-bottom: 1px solid #ffe58f;
+  padding: 0 16px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.marquee-wrapper {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.marquee-label {
+  display: inline-block;
+  background: #faad14;
+  color: #fff;
+  font-size: 12px;
+  padding: 0 6px;
+  border-radius: 2px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.marquee-text {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 13px;
+  color: #333;
+  animation: marquee-scroll 15s linear infinite;
+}
+@keyframes marquee-scroll {
+  from { transform: translateX(100vw); }
+  to { transform: translateX(-100%); }
+}
+.marquee-close {
+  margin-left: 12px;
+  color: #999;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.marquee-close:hover {
+  color: #333;
+}
+</style>
+```
+
+##### 3.4 布局引入 (`src/layout/index.vue`)
+
+在 `<navbar />` 之后、`<app-main />` 之前插入：
+
+```vue
+<notice-marquee />
+```
+
+并在 script 中注册组件：
+
+```js
+import NoticeMarquee from './components/NoticeMarquee'
+export default {
+  components: { NoticeMarquee }
+}
+```
+
+##### 3.5 弹窗过滤
+
+现有 `index.vue` 中 `listNoticeTop()` 本身不受影响，但后端已过滤为只返回 `display_type='0'` 的公告。
+
+#### 4. 数据流
+
+```
+管理员发布滚动公告（display_type='1'）
+    ↓
+用户登录 → 进入任意页面
+    → layout mounted → GET /system/notice/listTopMarquee
+    → 有未读滚动公告？ → 页面顶部显示滚动横幅
+        → 用户点击横幅 → POST /system/notice/markRead
+            → 成功 → 横幅消失（this.notice = null）
+            → 失败 → 横幅也消失（catch 处理）
+```
+
+### 测试要点
+
+1. 管理员发布一条 `display_type='1'` 的公告
+2. 用户登录，观察所有页面顶部是否显示滚动横幅
+3. 点击横幅，检查是否消失且不再出现
+4. 管理员发布 `display_type='0'` 和 `'1'` 各一条，验证弹窗和滚动条独立工作
+5. Swagger UI 中「系统模块」分组可调试 `listTopMarquee` 接口
