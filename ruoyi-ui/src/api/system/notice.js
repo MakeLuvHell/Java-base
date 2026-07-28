@@ -78,7 +78,7 @@ export function listNoticeReadUsers(query) {
   })
 }
 
-// 获取当前用户最新未读滚动公告
+// 获取所有活跃的滚动公告
 export function listNoticeTopMarquee() {
   return request({
     url: '/system/notice/listTopMarquee',

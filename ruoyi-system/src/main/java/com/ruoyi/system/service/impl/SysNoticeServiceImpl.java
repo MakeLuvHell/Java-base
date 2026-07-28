@@ -91,11 +91,11 @@ public class SysNoticeServiceImpl implements ISysNoticeService
     }
 
     /**
-     * 查询最新一条当前用户未读的滚动公告
+     * 查询所有活跃的滚动公告
      */
     @Override
-    public SysNotice selectTopMarquee(Long userId)
+    public List<SysNotice> selectMarqueeList(Long userId)
     {
-        return noticeMapper.selectTopMarquee(userId);
+        return noticeMapper.selectMarqueeList(userId);
     }
 }

@@ -103,16 +103,16 @@ public class SysNoticeController extends BaseController
     }
 
     /**
-     * 获取当前用户最新未读滚动公告
+     * 获取所有活跃的滚动公告
      */
-    @Operation(summary = "获取当前用户最新未读滚动公告")
+    @Operation(summary = "获取所有活跃的滚动公告")
     @GetMapping("/listTopMarquee")
     @ResponseBody
     public AjaxResult listTopMarquee()
     {
         Long userId = getUserId();
-        SysNotice notice = noticeService.selectTopMarquee(userId);
-        return success(notice);
+        List<SysNotice> list = noticeService.selectMarqueeList(userId);
+        return success(list);
     }
 
     /**

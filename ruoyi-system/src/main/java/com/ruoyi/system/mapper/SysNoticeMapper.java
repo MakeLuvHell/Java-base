@@ -60,10 +60,10 @@ public interface SysNoticeMapper
     public int deleteNoticeByIds(Long[] noticeIds);
 
     /**
-     * 查询最新一条当前用户未读的滚动公告
+     * 查询所有活跃的滚动公告（按创建时间倒序）
      *
      * @param userId 用户ID
-     * @return 滚动公告
+     * @return 滚动公告列表
      */
-    public SysNotice selectTopMarquee(@Param("userId") Long userId);
+    public List<SysNotice> selectMarqueeList(@Param("userId") Long userId);
 }
