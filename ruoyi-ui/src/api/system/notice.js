@@ -77,3 +77,11 @@ export function listNoticeReadUsers(query) {
     params: query
   })
 }
+
+// 获取所有活跃的滚动公告
+export function listNoticeTopMarquee() {
+  return request({
+    url: '/system/notice/listTopMarquee',
+    method: 'get'
+  })
+}

@@ -57,4 +57,12 @@ public interface ISysNoticeService
      * @return 结果
      */
     public int deleteNoticeByIds(Long[] noticeIds);
+
+    /**
+     * 查询所有活跃的滚动公告
+     *
+     * @param userId 用户ID
+     * @return 滚动公告列表
+     */
+    public List<SysNotice> selectMarqueeList(Long userId);
 }

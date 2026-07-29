@@ -1122,21 +1122,70 @@
         </el-card>
       </el-col>
     </el-row>
+    <el-dialog
+      title="系统公告"
+      :visible.sync="noticeDialogVisible"
+      width="600px"
+      top="8vh"
+      @close="handleNoticeClose"
+      append-to-body>
+      <div v-if="currentNotice">
+        <h3 style="margin-bottom: 12px;">{{ currentNotice.noticeTitle }}</h3>
+        <div class="notice-content" v-html="currentNotice.noticeContent" />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
+import { listNoticeTop, markNoticeRead } from "@/api/system/notice";
+
 export default {
   name: "Index",
   data() {
     return {
       // 版本号
-      version: "3.9.2"
+      version: "3.9.2",
+      noticeDialogVisible: false,
+      noticeList: [],
+      currentNotice: null,
+      noticeIndex: 0
     }
+  },
+  mounted() {
+    this.fetchUnreadNotices();
   },
   methods: {
     goTarget(href) {
       window.open(href, "_blank")
+    },
+    fetchUnreadNotices() {
+      listNoticeTop().then(res => {
+        const unreadList = (res.data || []).filter(n => !n.isRead);
+        if (unreadList.length > 0) {
+          this.noticeList = unreadList;
+          this.noticeIndex = 0;
+          this.showNotice(0);
+        }
+      });
+    },
+    showNotice(index) {
+      if (index < this.noticeList.length) {
+        this.currentNotice = this.noticeList[index];
+        this.noticeDialogVisible = true;
+      }
+    },
+    handleNoticeClose() {
+      const notice = this.currentNotice;
+      if (notice && notice.noticeId) {
+        markNoticeRead(notice.noticeId).then(() => {
+          this.noticeIndex++;
+          setTimeout(() => this.showNotice(this.noticeIndex), 300);
+        }).catch(() => {
+          this.noticeIndex++;
+          setTimeout(() => this.showNotice(this.noticeIndex), 300);
+        });
+      }
     }
   }
 }
@@ -1202,6 +1251,13 @@ export default {
       margin-inline-end: 0;
       padding-inline-start: 40px;
     }
+  }
+  .notice-content {
+    max-height: 360px;
+    overflow-y: auto;
+    line-height: 1.8;
+    font-size: 14px;
+    color: #333;
   }
 }
 </style>

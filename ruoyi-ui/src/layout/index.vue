@@ -5,6 +5,7 @@
     <div :class="{hasTagsView:needTagsView,sidebarHide:sidebar.hide}" class="main-container">
       <div :class="{'fixed-header':fixedHeader}">
         <navbar @setLayout="setLayout"/>
+        <notice-marquee/>
         <tags-view v-if="needTagsView"/>
       </div>
       <app-main/>
@@ -15,6 +16,7 @@
 
 <script>
 import { AppMain, Navbar, Settings, Sidebar, TagsView } from './components'
+import NoticeMarquee from './components/NoticeMarquee'
 import ResizeMixin from './mixin/ResizeHandler'
 import { mapState } from 'vuex'
 import variables from '@/assets/styles/variables.scss'
@@ -24,6 +26,7 @@ export default {
   components: {
     AppMain,
     Navbar,
+    NoticeMarquee,
     Settings,
     Sidebar,
     TagsView

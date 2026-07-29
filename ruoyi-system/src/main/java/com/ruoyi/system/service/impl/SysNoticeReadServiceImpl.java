@@ -45,9 +45,9 @@ public class SysNoticeReadServiceImpl implements ISysNoticeReadService
      * 查询公告列表并标记当前用户已读状态
      */
     @Override
-    public List<SysNotice> selectNoticeListWithReadStatus(Long userId, int limit)
+    public List<SysNotice> selectNoticeListWithReadStatus(Long userId, int limit, String displayType)
     {
-        return noticeReadMapper.selectNoticeListWithReadStatus(userId, limit);
+        return noticeReadMapper.selectNoticeListWithReadStatus(userId, limit, displayType);
     }
 
     /**

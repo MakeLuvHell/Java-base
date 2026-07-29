@@ -32,6 +32,9 @@ public class SysNotice extends BaseEntity
     /** 公告状态（0正常 1关闭） */
     private String status;
 
+    /** 展示形式（0弹窗 1顶部滚动条） */
+    private String displayType;
+
     /** 是否已读 */
     @JsonProperty("isRead")
     private boolean isRead;
@@ -99,6 +102,16 @@ public class SysNotice extends BaseEntity
         this.isRead = isRead;
     }
 
+    public String getDisplayType()
+    {
+        return displayType;
+    }
+
+    public void setDisplayType(String displayType)
+    {
+        this.displayType = displayType;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -106,7 +119,7 @@ public class SysNotice extends BaseEntity
             .append("noticeTitle", getNoticeTitle())
             .append("noticeType", getNoticeType())
             .append("noticeContent", getNoticeContent())
-            .append("status", getStatus())
+            .append("displayType", getDisplayType())
             .append("createBy", getCreateBy())
             .append("createTime", getCreateTime())
             .append("updateBy", getUpdateBy())

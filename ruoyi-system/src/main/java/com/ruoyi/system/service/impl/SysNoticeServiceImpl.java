@@ -89,4 +89,13 @@ public class SysNoticeServiceImpl implements ISysNoticeService
     {
         return noticeMapper.deleteNoticeByIds(noticeIds);
     }
+
+    /**
+     * 查询所有活跃的滚动公告
+     */
+    @Override
+    public List<SysNotice> selectMarqueeList(Long userId)
+    {
+        return noticeMapper.selectMarqueeList(userId);
+    }
 }

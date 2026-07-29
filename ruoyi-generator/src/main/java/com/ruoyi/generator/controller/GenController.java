@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
+import com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
@@ -133,16 +133,16 @@ public class GenController extends BaseController
         try
         {
             SqlUtil.filterKeyword(sql);
-            List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
+            List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.postgresql);
             List<String> tableNames = new ArrayList<>();
             for (SQLStatement sqlStatement : sqlStatements)
             {
-                if (sqlStatement instanceof MySqlCreateTableStatement)
+                if (sqlStatement instanceof SQLCreateTableStatement)
                 {
-                    MySqlCreateTableStatement createTableStatement = (MySqlCreateTableStatement) sqlStatement;
+                    SQLCreateTableStatement createTableStatement = (SQLCreateTableStatement) sqlStatement;
                     if (genTableService.createTable(createTableStatement.toString()))
                     {
-                        String tableName = createTableStatement.getTableName().replaceAll("`", "");
+                        String tableName = createTableStatement.getTableName().replaceAll("\"", "");
                         tableNames.add(tableName);
                     }
                 }

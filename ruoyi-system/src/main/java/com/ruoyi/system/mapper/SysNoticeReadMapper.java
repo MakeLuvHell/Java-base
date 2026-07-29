@@ -52,9 +52,10 @@ public interface SysNoticeReadMapper
      *
      * @param userId 用户ID
      * @param limit  最多返回条数
+     * @param displayType 展示形式
      * @return 带 isRead 标记的公告列表
      */
-    public List<SysNotice> selectNoticeListWithReadStatus(@Param("userId") Long userId, @Param("limit") int limit);
+    public List<SysNotice> selectNoticeListWithReadStatus(@Param("userId") Long userId, @Param("limit") int limit, @Param("displayType") String displayType);
 
     /**
      * 查询已阅读某公告的用户列表

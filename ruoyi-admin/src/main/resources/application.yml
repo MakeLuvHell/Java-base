@@ -78,7 +78,7 @@ spring:
       # 数据库索引
       database: 0
       # 密码
-      password:
+      password: -2y@Z6nRyiW7Rt@
       # 连接超时时间
       timeout: 10s
       lettuce:
@@ -112,7 +112,7 @@ mybatis:
 
 # PageHelper分页插件
 pagehelper:
-  helperDialect: mysql
+  helperDialect: postgresql
   supportMethodsArguments: true
   params: count=countSql
 
@@ -129,6 +129,10 @@ springdoc:
       display-name: '测试模块'
       paths-to-match: '/**'
       packages-to-scan: com.ruoyi.web.controller.tool
+    - group: 'system'
+      display-name: '系统模块'
+      paths-to-match: '/**'
+      packages-to-scan: com.ruoyi.web.controller.system
 
 # 防盗链配置
 referer:
