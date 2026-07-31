@@ -35,6 +35,18 @@
 
 **第 4 周任务书：** [tasks/W4-demo-and-wrapup.md](./tasks/W4-demo-and-wrapup.md)
 
+**第 5 周任务书：** [tasks/W5-user-batch-import-role-dept.md](./tasks/W5-user-batch-import-role-dept.md)
+
+覆盖：批量导入（Excel）、批量分配部门、批量分配角色；新权限 `system:user:import`、`system:user:dept`、`system:user:role`。
+
+**第 6 周任务书：** [tasks/W6-dict-management.md](./tasks/W6-dict-management.md)
+
+覆盖：字典类型 CRUD + 字典数据 CRUD + 业务页面字典下拉使用。
+
+**第 7 周任务书：** [tasks/W7-online-user-and-job-monitor.md](./tasks/W7-online-user-and-job-monitor.md)
+
+覆盖：在线用户批量强退 + 部门筛选 + 统计卡片；定时任务执行日志聚合统计 + 失败原因 Top5 + 7 天趋势图。
+
 ## ★★★ 进阶（2–5 天，需带教审设计）
 
 | ID | 任务 | 训练点 |
