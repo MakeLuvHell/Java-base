@@ -1,125 +1,147 @@
-# 任务书 W6：字典管理（新增 + 增删改查）
+# 任务书 W6：字典缓存一致性与业务接入
 
-> **前置要求：** 已通过 W1～W5（环境能登录、用户管理基础功能）。
-> **零基础说明：** 字典是 Ruoyi 框架中非常重要的**配置驱动**模块。它让系统支持动态下拉框和可扩展配置。实习生需要完成字典类型的**新增 + 字典数据的增删改查**，并理解字典如何被业务页面使用。
+> **前置要求：** 已通过 W1～W5，能说明 Controller、Service、Mapper、Redis 缓存和 Vue 字典 mixin 的职责。
+> **任务性质：** 仓库已经完整实现字典类型/字典数据 CRUD、前端管理页和 Redis 缓存。本周不重复造 CRUD，而是修复一个可复现的一致性缺陷，再把现有字典真实接入业务查询。
 
 | 项 | 内容 |
 | --- | --- |
-| 阶段 | 第 6 周 |
-| 难度 | ★★ |
-| 建议工期 | **4 个工作日**（第 1 天设计，第 4 天 PR 联调） |
-| 分支 | `feature` |
+| 阶段 | 第 6 周延伸任务 |
+| 难度 | ★★★ |
+| 建议工期 | **4～5 个工作日** |
 | 基线分支 | `master` |
-| 任务池映射 | T01 + T13 + T14 |
+| 任务池映射 | T01 + T14；缓存一致性专项 |
+| 必须评审 | 缓存失效时机、事务提交/回滚行为、业务字段选择 |
 
 ---
 
-## 0. 大白话：为什么要学字典？
+## 0. 先核对现状
 
-字典就是**让系统变得可配置**的工具。
+在写代码前逐项验证：
 
-以后新增一个下拉选项（如「公告类型」），**不需要改前端代码**，只需要在字典里新增一行数据即可。
-
-**本任务目标：**
-- 让实习生真正理解字典的核心概念
-- 能新增字典类型和字典数据
-- 能查看字典下拉框在业务页面是如何使用的
-
----
-
-## 1. 功能说明
-
-### 1.1 字典类型管理（sys_dict_type）
-- 新增、修改、删除字典类型
-- 字典类型编码必须唯一（如：`sys_notice_type`、`sys_user_status`）
-- 备注信息（可选）
-
-### 1.2 字典数据管理（sys_dict_data）
-- 在字典类型下新增/编辑/删除字典数据
-- 字段包括：字典码、字典名、字典值、排序、状态、颜色
-- 支持树形展示（可选）
-
-### 1.3 业务页面使用字典
-- 在**用户管理**页面新增一个「状态」下拉框，使用字典数据
-- 在**角色管理**页面新增一个「角色类型」下拉框，使用字典数据
-
----
-
-## 2. 范围（必须遵守）
-
-### 2.1 只改的地方
-| 层 | 可能路径 |
+| 已有能力 | 真实位置 |
 | --- | --- |
-| 后端 Controller | `ruoyi-system/.../controller/system/DictTypeController.java`、`DictDataController.java` |
-| 后端 Service | `ISysDictTypeService`、`SysDictTypeServiceImpl.java`、`ISysDictDataService`、`SysDictDataServiceImpl.java` |
-| 后端 Mapper | `SysDictTypeMapper.java`、`SysDictDataMapper.java` + `*.xml` |
-| 后端 Domain | `SysDictType.java`、`SysDictData.java` |
-| 前端 | `ruoyi-ui/src/views/system/dict/` 目录下所有 `.vue` 文件 |
-| 前端 API | `ruoyi-ui/src/api/system/dict.js` |
-| 菜单权限 | `sys_menu` 表 |
+| 字典类型 CRUD / 刷新缓存 | `ruoyi-admin/src/main/java/com/ruoyi/web/controller/system/SysDictTypeController.java` |
+| 字典数据 CRUD | `ruoyi-admin/src/main/java/com/ruoyi/web/controller/system/SysDictDataController.java` |
+| 类型更新与缓存加载 | `ruoyi-system/src/main/java/com/ruoyi/system/service/impl/SysDictTypeServiceImpl.java` |
+| 数据增删改与缓存刷新 | `ruoyi-system/src/main/java/com/ruoyi/system/service/impl/SysDictDataServiceImpl.java` |
+| 缓存工具 | `ruoyi-common/src/main/java/com/ruoyi/common/utils/DictUtils.java` |
+| 前端管理页 | `ruoyi-ui/src/views/system/dict/index.vue`、`data.vue` |
+| 前端 API | `ruoyi-ui/src/api/system/dict/type.js`、`data.js` |
+| 业务接入样例 | `ruoyi-ui/src/views/system/user/index.vue` 的 `dicts`、`dict.type` |
 
-### 2.2 不要做
-- 大范围重构
-- 改 `SecurityConfig` 或 JWT 相关逻辑
-- 新建独立业务表
+当前 `updateDictType` 会把数据库中的字典类型和字典数据改成新编码，并写入新 Redis key，但没有删除旧 key。若旧 key 已被访问并缓存，重命名后仍可能读到过期数据。
+
+提交设计前必须用 Redis key 或接口响应复现一次，写清：旧编码、旧 key、新编码、预期与实际结果。
 
 ---
 
-## 3. 推荐默认实现
+## 1. 本周交付
 
-| 项 | 默认值 |
+### W6A：修复字典类型重命名的缓存一致性
+
+目标行为：
+
+1. 重命名前读取旧编码，让旧 key 确实进入缓存。
+2. 在一个数据库事务内更新 `sys_dict_type.dict_type` 和对应 `sys_dict_data.dict_type`。
+3. 数据库提交成功后，旧 key 必须删除；新 key 必须删除或写入提交后的完整数据。
+4. 数据库事务回滚时，不能提前发布一个数据库中不存在的新缓存状态。
+5. 旧编码再次查询不得返回重命名前的过期列表；新编码查询结果与数据库一致。
+
+实现方式由实习生先写方案，导师确认后再编码。可选方案包括提交后失效旧/新 key，或提交后重建新 key；无论采用哪种，都必须解释：
+
+- 为什么不能只调用 `setDictCache(newType, ...)`；
+- 缓存操作失败时接口与日志如何表现；
+- 管理员“刷新缓存”如何作为恢复手段；
+- 并发读在提交前后最多可能看到什么。
+
+不要引入新的缓存框架，也不要用“清空所有 Redis”掩盖单 key 一致性问题。
+
+### W6B：把已有字典接入一个真实业务查询
+
+在 **系统管理 → 用户管理** 增加“用户性别”筛选和列表展示：
+
+- 使用现有字典 `sys_user_sex`，不新建 `role_type` 字段或业务表。
+- 查询参数使用现有 `SysUser.sex`；Mapper 只使用 `#{sex}` 参数绑定。
+- 前端筛选项使用 `dict.type.sys_user_sex`，列表值使用 `dict-tag` 或仓库等价组件。
+- 清空筛选后恢复全部用户；非法值不能导致 SQL 错误或绕过其他查询条件。
+- `system:user:list` 权限和现有用户列表数据范围必须保持不变。
+
+这个切片用于证明“字典不是只会在字典管理页做 CRUD”，而是贯穿数据库字段、查询对象、Mapper、API 和 Vue 展示。
+
+---
+
+## 2. 修改范围
+
+| 层 | 真实路径 / 建议位置 |
 | --- | --- |
-| 字典类型编码规则 | 唯一字符串（如 `sys_notice_type`） |
-| 字典数据字段 | 字典码、字典名、字典值、排序（数字）、状态 |
-| 前端下拉框组件 | `el-select` 或 `el-cascader` |
-| 字典值存储格式 | 通常存储在 `dict_value` 字段 |
-| 字典缓存 | 可选开启 Redis 缓存（可选） |
+| 字典 Service | `ruoyi-system/src/main/java/com/ruoyi/system/service/impl/SysDictTypeServiceImpl.java` |
+| 缓存工具 | 优先复用 `ruoyi-common/src/main/java/com/ruoyi/common/utils/DictUtils.java`；只在缺少通用能力时小改 |
+| 用户查询 | `SysUser.java`、`SysUserMapper.java`、`SysUserMapper.xml` |
+| 用户 Controller | 现有 `ruoyi-admin/src/main/java/com/ruoyi/web/controller/system/SysUserController.java` 通常无需新增接口 |
+| 用户前端 | `ruoyi-ui/src/views/system/user/index.vue` |
+| 字典前端 | 仅用于复现和回归，不重写现有 CRUD 页面 |
+
+本任务不新增数据库列、不实现树形字典、不增加“角色类型”，也不修改 JWT、Security 或全局 Redis 配置。
 
 ---
 
-## 4. 验收标准
-1. 本地能启动后端 + 前端
-2. 管理员能**新增字典类型**并保存
-3. 能为字典类型**新增、修改、删除字典数据**
-4. 在**用户管理**页面能正常显示使用字典的数据下拉框
-5. 无对应权限的用户无法操作字典相关接口
-6. 字典数据能正常显示在下拉框中
-7. PR 描述包含：改动摘要 + 自测步骤 + 截图
+## 3. 缓存与事务契约
+
+| 场景 | 必须满足 |
+| --- | --- |
+| 只修改字典名称/备注，编码不变 | 当前编码的缓存最终与数据库一致 |
+| `old_type` 重命名为 `new_type` | 旧 key 不再返回数据，新 key 返回完整且排序正确的数据 |
+| 新编码已存在 | 唯一性校验阻止修改，数据库和缓存均不变 |
+| 更新字典数据时数据库失败 | 不把未提交数据写入缓存 |
+| 数据库成功、缓存清理失败 | 不回滚已提交数据库；记录可定位的错误，并可通过“刷新缓存”恢复 |
+| 连续重命名两次 | 不遗留任一个历史 key |
+
+禁止把 Redis 与 MySQL 描述成一个天然原子事务。技术笔记中要明确这是跨资源一致性问题，并说明本任务采用的最终一致策略。
 
 ---
 
-## 5. 技术笔记（必交）
+## 4. 验收矩阵
 
-实习生需要写以下内容：
-1. 字典的核心概念（为什么用字典？）
-2. `sys_dict_type` 和 `sys_dict_data` 两张表的字段说明
-3. 字典在**用户管理**页面是如何使用的（截图 + 代码片段）
-4. 字典的查询优化思路（缓存到 Redis）
-5. 字典类型编码命名规范
+### 缓存一致性
+
+- [ ] 先访问旧编码并确认 Redis 中存在旧 key，再执行重命名
+- [ ] 数据库类型表、数据表、新 key、旧 key四处结果一致
+- [ ] 不点“刷新缓存”也能通过正常读请求得到新数据
+- [ ] 重命名到重复编码时请求失败，旧数据和旧缓存仍可用
+- [ ] 人为制造事务回滚，证明新 key 没有泄漏未提交数据
+- [ ] 人为制造缓存清理失败，日志包含字典 ID、旧编码、新编码且不含敏感配置
+
+### 业务接入
+
+- [ ] 用户页性别筛选来自 `sys_user_sex`，不是前端硬编码选项
+- [ ] 男、女、未知、清空筛选四种结果与数据库一致
+- [ ] 列表显示字典标签；未知历史值有可理解的兜底，不使页面空白
+- [ ] 无 `system:user:list` 权限直调仍为 403
+- [ ] 数据范围受限账号筛选后不会看到范围外用户
+
+### 回归
+
+- [ ] 字典类型和字典数据的新增、修改、删除、导出、刷新缓存仍可用
+- [ ] 用户新增/编辑中的性别字典仍可用
+- [ ] Redis 不可用时的现象、恢复步骤和未验证风险已记录
+
+---
+
+## 5. 推荐拆分
+
+1. **第 1 天：** 画出读缓存、查库、回填、类型重命名时序；提交缺陷复现证据和修复方案。
+2. **第 2～3 天：** 实现 W6A，覆盖提交成功、唯一性失败和事务回滚。
+3. **第 4 天：** 完成用户性别筛选与标签展示，联调权限和数据范围。
+4. **第 5 天：** 回归、Review 修正、整理笔记和 PR 证据。
 
 ---
 
-## 6. 推荐任务拆分（第 1 天设计 → 第 4 天 PR）
+## 6. 必交证据
 
-### 第 1 天（设计日）
-- 完成功能描述 + 接口设计 + 前后端接口文档
-- 画流程图 + 组件设计
-- 理解字典在业务页面是如何被使用的
+- 修复前/修复后的 Redis key 与接口响应对比
+- 缓存时序图，标出数据库事务提交点
+- 用户性别筛选的 Network 请求、Mapper 条件和页面结果
+- 完整验收矩阵；至少一条失败路径和一条回滚路径
+- `docs/intern/notes/W6-notes.md`：解释 cache-aside、旧 key 缺陷、跨资源为何不能声称强一致
 
-### 第 2～3 天
-- 后端实现（字典类型 + 字典数据 CRUD）
-- 前端实现（字典类型列表 + 字典数据列表 + 下拉框使用）
-
-### 第 4 天
-- 联调 + 回归测试 + 写技术笔记 + PR
-
----
-
-## 7. 参考实现（对照学习）
-
-- 字典类型列表：`ruoyi-system/system-dict-type/index.vue`
-- 字典数据列表：`ruoyi-system/system-dict-data/index.vue`
-- 业务页面使用字典：`ruoyi-ui/src/views/system/user/index.vue`
-- 导出功能：`SysPostController.export`
-
----
+不得只提交“点页面正常”的截图，也不得把手工点击“刷新缓存”作为修复本身。

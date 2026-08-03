@@ -24,7 +24,7 @@
 8. （收口）tasks/W4-demo-and-wrapup.md          ← 第 4 周 Demo + 笔记
 ```
 
-**口诀：** 第 1 周跟链路，第 2 周置顶闭环，第 3 周同模块加深，第 4 周 Demo 收口。  
+**口诀：** 第 1 周跟链路，第 2 周置顶闭环，第 3 周同模块加深，第 4 周 Demo 收口。W5～W7 是进阶延伸，W8～W12 是通过前置验收后才解锁的全栈毕业项目。
 安全整改（SEC-001 等）作教材与结对项，**不作为**实习生第一个独立任务。
 
 ### 本机默认速查
@@ -44,7 +44,7 @@
 | 文档 | 读者 | 内容 |
 | --- | --- | --- |
 | [00-onboarding-message.md](./00-onboarding-message.md) | 带教人 → 转发 | 开营第一封消息（可直接复制） |
-| [01-learning-path.md](./01-learning-path.md) | 双方 | 4 周学习路径（含 2 周加速版） |
+| [01-learning-path.md](./01-learning-path.md) | 双方 | 4 周基础、进阶延伸与全栈毕业项目（含 2 周加速版） |
 | [02-reading-list.md](./02-reading-list.md) | 实习生 | 必读顺序与口头验收题 |
 | [03-task-template.md](./03-task-template.md) | 带教人 | 任务下达模板 |
 | [04-task-pool.md](./04-task-pool.md) | 带教人 | 按难度分级的任务池 |
@@ -52,7 +52,7 @@
 | [06-mentor-guide.md](./06-mentor-guide.md) | 带教人 | 节奏、红线、Code Review 要点 |
 | [07-zero-basics.md](./07-zero-basics.md) | 实习生（零基础必读） | 概念大白话 |
 | [08-local-setup-step-by-step.md](./08-local-setup-step-by-step.md) | 实习生 | 逐步装环境 |
-| [09-module-map.md](./09-module-map.md) | 实习生 / 带教带读 | **系统模块地图**：菜单功能、代码位置、与 W1～W4 对应 |
+| [09-module-map.md](./09-module-map.md) | 实习生 / 带教带读 | **系统模块地图**：菜单功能、代码位置、与 W1～W12 对应 |
 | [tasks/](./tasks/) | 双方 | 可直接下达的具体任务书 |
 
 ## 推荐任务书（循序渐进主线）
@@ -64,7 +64,25 @@
 | [W3-notice-deepen.md](./tasks/W3-notice-deepen.md) | 第 3 周 | 同模块：筛选 + 导出 + 操作日志 + 模块说明 | **仅 W2 通过后** |
 | [W4-demo-and-wrapup.md](./tasks/W4-demo-and-wrapup.md) | 第 4 周 | Demo 15 分钟 + 技术笔记 + 合入收口 | **W3 通过后（或 W2 后加速收口）** |
 
-加餐/结对仍从 [04-task-pool.md](./04-task-pool.md) 选题；完整任务书模板见 [03-task-template.md](./03-task-template.md)。
+### 进阶延伸（按能力解锁）
+
+| 任务 | 说明 | 解锁条件 |
+| --- | --- | --- |
+| [W5-user-batch-import-role-dept.md](./tasks/W5-user-batch-import-role-dept.md) | 用户导入结构化结果 + 原子批量部门/角色 | W4 通过；带教先确认契约与事务边界 |
+| [W6-dict-management.md](./tasks/W6-dict-management.md) | 字典旧 key 一致性修复 + 用户性别筛选 | W5 通过；不重做现成字典 CRUD |
+| [W7-online-user-and-job-monitor.md](./tasks/W7-online-user-and-job-monitor.md) | 在线会话增强 + 可复现调度统计 | W6 通过；按两个模块分别验收 |
+
+### 全栈毕业项目（连续领域，不可跳周）
+
+| 任务 | 说明 | 核心能力 |
+| --- | --- | --- |
+| [W8-ticket-center-mvp.md](./tasks/W8-ticket-center-mvp.md) | 工单中心 MVP | 独立 Maven 模块、数据建模、CRUD、DataScope、迁移/回滚 |
+| [W9-ticket-workflow-collaboration.md](./tasks/W9-ticket-workflow-collaboration.md) | 工单流转与协作 | 状态机、事务、幂等、乐观锁、时间线 |
+| [W10-ticket-attachments-notifications-audit.md](./tasks/W10-ticket-attachments-notifications-audit.md) | 附件、通知与审计 | 鉴权文件、提交后副作用、通知去重、一致性补偿 |
+| [W11-testing-and-ci.md](./tasks/W11-testing-and-ci.md) | 自动化测试与 CI | 测试分层、Testcontainers、前端测试、可复现构建 |
+| [W12-deployment-production-readiness.md](./tasks/W12-deployment-production-readiness.md) | 部署与生产就绪 | 容器化、配置安全、可观测性、升级/备份/回滚 |
+
+W8～W10 必须在同一工单领域连续演进；W11～W12 建议导师结对。不要把后续周任务一次性全部发给零基础实习生。加餐/结对仍从 [04-task-pool.md](./04-task-pool.md) 选题；完整任务书模板见 [03-task-template.md](./03-task-template.md)。
 
 ---
 

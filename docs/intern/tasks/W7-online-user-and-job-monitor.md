@@ -1,259 +1,219 @@
-# 任务书 W7：在线用户管理增强 + 定时任务执行监控面板
+# 任务书 W7：在线会话增强与调度日志统计
 
-> **前置要求：** 已通过 W1～W6（用户管理、公告模块、字典管理等基础能力）。
-> **零基础说明：** 本周做两个模块的增量功能。一个是「在线用户」页面的增强，一个是「定时任务」执行日志的统计监控面板。都是已有后端接口基础上的前后端增量开发，不涉及基础设施改造。
+> **前置要求：** 已通过 W1～W6；本地已导入 `quartz.sql`，能打开在线用户和调度日志页面。
+> **任务性质：** 本周在两个现有监控模块上做真实增量，重点是会话口径、批量危险操作、聚合 SQL、可复现 fixture 和图表生命周期。
 
 | 项 | 内容 |
 | --- | --- |
-| 难度 | ★★ |
-| 建议工期 | **4 个工作日**（第 1 天设计，第 4 天 PR 联调） |
+| 阶段 | 第 7 周延伸任务 |
+| 难度 | ★★★★ |
+| 建议工期 | **6～8 个工作日**；拆成 W7A/W7B/W7C 三个 PR |
 | 基线分支 | `master` |
-| 任务池映射 | T13（筛选/导出扩展） + T14（模块文档） |
+| 任务池映射 | T12 + T14；聚合 SQL 与可视化专项 |
+| 必须评审 | 指标口径、批量强退权限、统计筛选范围、fixture 清理 |
 
 ---
 
-## 0. 大白话：本周你要交付什么？
+## 0. 先确认四个事实
 
-### 模块 A：在线用户管理增强
+1. 在线列表遍历的是 Redis `login_tokens:*`，一条记录代表一个**会话**，不是一个自然人。
+2. `LoginUser.loginTime` 会在 token 刷新时更新，不能拿它当“首次登录时间”或“最近一小时登录人数”。
+3. 调度失败详情写在 `sys_job_log.exception_info`；`job_message` 只是任务名称和耗时说明。
+4. `sys_job_log` 已有 `start_time` / `end_time`，本任务用二者计算耗时，不新增 `cost_time`。
 
-在 **监控 → 在线用户** 页面，现在只有「按 IP/用户名筛选 + 单个强退」。你要增加：
-
-| 能力 | 用户能感知到什么 |
-| --- | --- |
-| 批量强退 | 勾选多个在线用户，一键全部强退 |
-| 按部门筛选 | 在筛选栏新增「部门树」下拉，按部门过滤在线用户 |
-| 在线统计卡片 | 页面顶部显示当前在线总人数、admin 在线数、最近 1 小时登录人数 |
-
-### 模块 B：定时任务执行监控面板
-
-在 **监控 → 定时任务** 的「调度日志」标签页，现在只有原始日志列表。你要增加：
-
-| 能力 | 用户能感知到什么 |
-| --- | --- |
-| 执行统计卡片 | 显示总执行次数、成功次数、失败次数、成功率（筛选范围内） |
-| 失败原因 Top5 | 展示出现最多的 5 条失败消息 |
-| 平均耗时 Top5 | 展示执行最慢的 5 个任务 |
-| 最近 7 天趋势图 | 用柱状图展示近 7 天的成功/失败数量分布 |
-
-### 本周明确不要做
-
-| 不要做 | 为什么 |
-| --- | --- |
-| 大改 `SecurityConfig` / JWT 密钥逻辑 | 与本任务无关，风险高 |
-| 新建独立业务表 | 保持在现有模块内 |
-| 前端改样式 / 换主题 | 与功能实现无关 |
-| 引入 ECharts 以外的第三方图表库 | 用 ECharts 或 Element UI 内置组件即可 |
-| 把密码提交到 Git | **红线** |
+设计文档和页面文案必须使用上述口径，不能继续沿用“在线总人数”“按 `job_message` 统计异常”或“用 `create_time` 估算耗时”的说法。
 
 ---
 
-## 1. 范围（必须遵守）
+## 1. W7A：在线会话增强
 
-### 1.1 允许改的地方
+### 1.1 批量强退
 
-| 层 | 可能路径 |
-| --- | --- |
-| 后端 Controller | `ruoyi-admin/.../controller/monitor/SysUserOnlineController.java` |
-| 后端 Controller | `ruoyi-quartz/.../controller/SysJobLogController.java` |
-| 后端 Service | `ISysUserOnlineService`、`ISysJobLogService` 及实现 |
-| 后端 Domain | `SysUserOnline.java`、`SysJobLog.java` |
-| 后端 Mapper XML | `SysJobLogMapper.xml`（新增统计查询） |
-| 前端 | `ruoyi-ui/src/views/monitor/online/index.vue` |
-| 前端 | `ruoyi-ui/src/views/monitor/job/log.vue` |
-| 前端 API | `ruoyi-ui/src/api/monitor/online.js`、`ruoyi-ui/src/api/monitor/jobLog.js` |
+在在线用户列表增加多选和批量强退，推荐接口：
 
-### 1.2 分支创建
-
-```bash
-git checkout master
-git pull
-git checkout -b feature/<你的名字>-online-user-job-monitor
+```http
+DELETE /monitor/online/batch/{tokenIds}
 ```
 
----
+- 使用初始化 SQL 已存在的权限 `monitor:online:batchLogout`，不要误用单条权限 `monitor:online:forceLogout`。
+- `tokenIds` 去重后限制为 1～100 个；不存在或已退出的 token 按幂等删除处理。
+- 前端显示将要强退的会话数并二次确认；0 个选中时按钮禁用。
+- 写操作保留 `@Log`；列表、统计等只读接口遵循现有风格，不强加操作日志。
+- 无批量权限用户即使能看列表，直调批量接口也必须返回 403。
 
-## 2. 模块 A：在线用户管理增强
+### 1.2 按部门筛选
 
-### 2.1 批量强退
+`LoginUser` 已有 `deptId`，但 `SysUserOnline` 目前只暴露 `deptName`。本任务为在线会话 DTO 补 `deptId`，列表接口按精确 `deptId` 过滤。
 
-- 在线用户列表增加「多选框」（已有 `el-table-column type="selection"` 的用法可参照其他页面）
-- 工具栏增加「批量强退」按钮（勾选 0 个时禁用）
-- 后端新增 `DELETE /monitor/online/batch/{tokenIds}`，接收多个 token 批量删除 Redis 中的 session
+部门选择项由在线模块自己的只读接口返回“当前会话中出现的部门”，例如：
 
-**推荐实现：**
-```java
-@PreAuthorize("@ss.hasPermi('monitor:online:forceLogout')")
-@Log(title = "在线用户", businessType = BusinessType.FORCE)
-@DeleteMapping("/batch/{tokenIds}")
-public AjaxResult batchForceLogout(@PathVariable String[] tokenIds) {
-    for (String tokenId : tokenIds) {
-        redisCache.deleteObject(CacheConstants.LOGIN_TOKEN_KEY + tokenId);
-    }
-    return success();
-}
+```http
+GET /monitor/online/deptOptions
+Permission: monitor:online:list
 ```
 
-### 2.2 按部门筛选
+返回去重后的 `{deptId, deptName}`。不要依赖需要 `system:user:list` 的用户部门树接口，也不要用部门名称模糊匹配代替稳定 ID。
 
-- 前端筛选栏增加部门选择器（参照用户管理页面的 `DeptTree` 组件用法）
-- 后端 `list` 接口增加 `deptName` 参数（已有 `ipaddr` + `userName` 两个筛选条件）
-- 在遍历 Redis token 列表时，增加部门名称匹配过滤
+### 1.3 会话统计
 
-### 2.3 在线统计卡片
-
-- 后端新增 `GET /monitor/online/stats`，返回：
-```json
-{
-  "totalOnline": 15,
-  "adminOnline": 2,
-  "recentHourLogin": 8
-}
-```
-- 前端页面顶部用 `el-row` + `el-col` + `el-card` 展示三个统计数字
-- 筛选条件变化时，卡片数据同步更新
-
----
-
-## 3. 模块 B：定时任务执行监控面板
-
-### 3.1 执行统计接口
-
-后端新增 `GET /monitor/jobLog/stats`，接收与列表页相同的筛选参数，返回聚合结果：
+新增 `GET /monitor/online/stats`，使用 `monitor:online:list`，并接受与在线列表一致的 `ipaddr`、`userName`、`deptId`：
 
 ```json
 {
+  "totalSessions": 15,
+  "uniqueUsers": 12,
+  "adminSessions": 2,
+  "departmentCount": 5
+}
+```
+
+| 指标 | 固定定义 |
+| --- | --- |
+| `totalSessions` | 筛选后 token 数 |
+| `uniqueUsers` | 筛选后去重 `userId` 数 |
+| `adminSessions` | `userId=1` 的会话数 |
+| `departmentCount` | 筛选后非空 `deptId` 去重数 |
+
+列表和统计必须复用同一套过滤函数，避免页面显示 10 行但卡片统计 12。Redis 中存在空值、过期值或缺少用户对象时跳过并记录可诊断日志，不能让整个接口空指针失败。
+
+---
+
+## 2. W7B：调度日志统计后端
+
+新增 `GET /monitor/jobLog/stats`，权限复用 `monitor:job:list`。统计接口不写 `@Log`。
+
+### 2.1 查询契约
+
+支持 `jobName`、`jobGroup`、`invokeTarget`、`beginTime`、`endTime`：
+
+- 起止日期必须成对出现，含首尾日期。
+- 未传日期时默认今天往前 6 天，共 7 个自然日。
+- 最大范围 31 天；超出直接返回参数错误，不执行无界聚合。
+- 统计区不接受 `status` 参数。成功、失败和失败原因本身已经按状态分组，避免筛选状态后产生自相矛盾的卡片。
+- 所有统计 SQL 复用同一个基础筛选片段；`jobName` / `invokeTarget` 模糊查询必须使用 `#{}`。
+
+推荐响应：
+
+```json
+{
+  "range": { "beginDate": "2026-07-25", "endDate": "2026-07-31" },
   "totalCount": 150,
   "successCount": 142,
-  "failCount": 8,
+  "failureCount": 8,
   "successRate": 94.67,
   "topFailures": [
-    { "jobMessage": "java.lang.NullPointerException", "count": 3 },
-    { "jobMessage": "Connection timeout", "count": 2 },
-    ...
+    { "reason": "java.lang.NullPointerException", "count": 3 }
   ],
   "topSlowJobs": [
-    { "jobName": "ryTask.ryParams", "avgCost": 5200 },
-    ...
+    { "jobName": "reportJob", "jobGroup": "DEFAULT", "avgDurationMs": 5200 }
   ],
   "dailyTrend": [
-    { "date": "2026-07-25", "success": 20, "fail": 1 },
-    { "date": "2026-07-26", "success": 22, "fail": 0 },
-    ...
+    { "date": "2026-07-25", "successCount": 20, "failureCount": 1 }
   ]
 }
 ```
 
-### 3.2 统计查询 SQL
+### 2.2 固定统计口径
 
-在 `SysJobLogMapper.xml` 中新增：
-
-```xml
-<!-- 基本统计 -->
-<select id="selectJobLogStats" resultType="map">
-    select
-        count(*) as totalCount,
-        sum(case when status = '0' then 1 else 0 end) as successCount,
-        sum(case when status != '0' then 1 else 0 end) as failCount
-    from sys_job_log
-    <where>
-        ... (与 list 相同的筛选条件)
-    </where>
-</select>
-
-<!-- 失败原因 Top5 -->
-<select id="selectTopFailures" resultType="map">
-    select job_message as jobMessage, count(*) as cnt
-    from sys_job_log
-    where status != '0'
-    group by job_message
-    order by cnt desc
-    limit 5
-</select>
-
-<!-- 平均耗时 Top5 — 注意 sys_job_log 是否有 cost 字段，没有则用 createTime 估算 -->
-```
-
-> **提示：** 先查 `sys_job_log` 表结构确认字段。如果 `sys_job_log` 没有「执行耗时」字段，需要在 `SysJobLog` 中新增 `cost_time` 字段（bigint，毫秒），并在 `AbstractQuartzJob.after()` 中写入。
-
-### 3.3 前端展示
-
-在 `log.vue` 页面顶部增加统计区域：
-
-- 第一行：四个统计卡片（总次数 / 成功 / 失败 / 成功率）
-- 第二行：左侧「失败原因 Top5」表格 + 右侧「最近 7 天趋势」柱状图
-
-**图表选型：**
-- 如果项目已有 ECharts 依赖（检查 `package.json`），直接用 `v-charts` 或 ECharts 原生组件
-- 如果没有，用 Element UI 的 `el-card` + `el-progress` 组合展示（成功率用进度条，Top5 用表格）
-
----
-
-## 4. 验收标准
-
-### 模块 A（在线用户增强）
-
-1. 本地能启动后端 + 前端
-2. 在线用户列表支持多选 + 批量强退
-3. 按部门名称筛选在线用户
-4. 页面顶部统计卡片数字正确
-5. 无 `monitor:online:forceLogout` 权限的用户批量强退接口返回 **403**
-
-### 模块 B（定时任务监控）
-
-6. 调度日志页面顶部显示统计卡片
-7. 筛选条件变化时统计数据和图表同步更新
-8. 失败原因 Top5 展示正确
-9. 最近 7 天趋势图数据正确
-10. 无 `monitor:job:list` 权限的用户统计接口返回 **403**
-
-### 通用
-
-11. PR 描述包含：改动摘要 + 自测步骤 + 截图
-12. 后端所有新接口有 `@PreAuthorize` + `@Log` 注解
-
----
-
-## 5. 技术笔记（必交）
-
-写以下内容到 `docs/intern/notes/W7-notes.md`：
-
-1. **在线用户**是如何从 Redis 中提取的（Token key 规律 + 遍历逻辑）
-2. **批量强退**的权限控制（为什么不能只做前端按钮隐藏）
-3. **定时任务执行日志**的写入链路（`AbstractQuartzJob` → `before/after` → `SysJobLogMapper`）
-4. **聚合查询 SQL** 的写法（CASE WHEN 条件聚合 + GROUP BY + LIMIT）
-
----
-
-## 6. 推荐任务拆分
-
-### 第 1 天（设计日）
-- 读 `SysUserOnlineController` + `SysJobLogController` + 对应前端代码
-- 画页面草图（统计卡片放哪、图表用哪种）
-- 确认 `sys_job_log` 表结构（有没有 cost_time 字段）
-- 完成接口设计文档
-
-### 第 2 天
-- 模块 A 后端：批量强退接口 + 统计接口 + 部门筛选
-- 模块 B 后端：聚合统计 SQL + 统计接口
-
-### 第 3 天
-- 模块 A 前端：多选 + 批量强退按钮 + 部门筛选 + 统计卡片
-- 模块 B 前端：统计卡片 + 失败原因表格 + 趋势图
-
-### 第 4 天
-- 联调 + 回归测试 + 权限 403 验证 + 技术笔记 + PR
-
----
-
-## 7. 参考实现
-
-| 参考什么 | 在哪看 |
+| 项 | 规则 |
 | --- | --- |
-| 多选 + 批量操作 | 用户管理页面 `ruoyi-ui/src/views/system/user/index.vue` |
-| 部门树筛选组件 | `ruoyi-ui/src/components/DeptTree.vue` |
-| 导出功能 | `SysPostController.export` + 前端 `handleExport` |
-| Redis 删除 session | `SysUserOnlineController.forceLogout` |
-| 操作日志列表筛选 | `ruoyi-ui/src/views/monitor/operlog/index.vue` |
-| 统计卡片布局 | `ruoyi-ui/src/views/dashboard/`（首页 Dashboard） |
+| 成功 / 失败 | `status='0'` 为成功，其余为失败 |
+| 成功率 | `successCount / totalCount * 100`，四舍五入 2 位；总数为 0 时返回 `0` |
+| 失败原因 Top5 | 只看失败记录；取 `exception_info` 第一行并截断到 200 字符后分组，空值归为“未记录异常” |
+| 平均耗时 Top5 | `end_time >= start_time` 且两者非空；按 `job_name + job_group` 分组，使用二者差值计算毫秒平均值 |
+| 每日趋势 | 覆盖有效日期范围内每一天；无日志日期由 Service 补 0，按日期升序 |
+
+MySQL 可用 `TIMESTAMPDIFF(MICROSECOND, start_time, end_time) / 1000` 计算毫秒。禁止解析 `job_message` 中的中文耗时字符串，也不要用 `create_time` 代替起止时间。
+
+### 2.3 可复现 fixture
+
+交付仅供本地/测试使用的 `sql/intern/W7-job-log-fixture.sql` 和清理脚本，数据使用唯一前缀 `intern_w7_`，至少包含：
+
+- 连续 7 天的成功和失败记录；
+- 相同异常首行、不同堆栈的失败记录；
+- 5 个以上任务及可排序的耗时；
+- `start_time` / `end_time` 为空和结束早于开始的脏数据；
+- 某一天完全没有记录。
+
+fixture 禁止连接或写入共享/生产库；清理语句只能匹配 `intern_w7_` 数据，不得 `TRUNCATE sys_job_log`。
 
 ---
+
+## 3. W7C：统计前端
+
+在 `ruoyi-ui/src/views/monitor/job/log.vue` 增加未嵌套的统计区域：
+
+- 四个紧凑统计项：总次数、成功、失败、成功率；
+- 失败原因 Top5 表格；
+- 平均耗时 Top5 表格；
+- 每日成功/失败趋势柱状图，标题显示响应中的有效日期范围。
+
+项目已安装 ECharts，直接使用原生 ECharts，不引入 `v-charts` 或第二套图表库。组件必须：
+
+- 在数据刷新时更新 series，不重复创建实例；
+- 监听容器尺寸变化并 `resize`；
+- 在组件销毁时解除监听并 `dispose`；
+- 对加载中、空数据、403、网络失败分别呈现稳定状态；
+- 小屏下表格和图表换行，不能遮住列表或筛选栏。
+
+统计区使用自己的日期范围和任务筛选，点击查询时一次刷新全部统计；下方原日志列表保留原有状态筛选和分页行为。
+
+---
+
+## 4. 修改范围
+
+| 层 | 真实路径 / 建议位置 |
+| --- | --- |
+| 在线 Controller | `ruoyi-admin/src/main/java/com/ruoyi/web/controller/monitor/SysUserOnlineController.java` |
+| 在线 Service / DTO | `ruoyi-system/src/main/java/com/ruoyi/system/service/ISysUserOnlineService.java`、`ruoyi-system/src/main/java/com/ruoyi/system/service/impl/SysUserOnlineServiceImpl.java`、`ruoyi-system/src/main/java/com/ruoyi/system/domain/SysUserOnline.java` |
+| 调度 Controller / Service / Mapper | `ruoyi-quartz/src/main/java/com/ruoyi/quartz/` |
+| 调度 XML | `ruoyi-quartz/src/main/resources/mapper/quartz/SysJobLogMapper.xml` |
+| 在线前端 | `ruoyi-ui/src/views/monitor/online/index.vue`、`src/api/monitor/online.js` |
+| 调度前端 | `ruoyi-ui/src/views/monitor/job/log.vue`、`src/api/monitor/jobLog.js` |
+| fixture | `sql/intern/` 下本任务专用升级/清理脚本 |
+
+不新增业务表，不修改 `AbstractQuartzJob` 的日志写入格式，不修改 Security/JWT，也不引入新的图表依赖。
+
+---
+
+## 5. 验收矩阵
+
+### 在线会话
+
+- [ ] 同一用户开两个浏览器登录时，`totalSessions=2`、`uniqueUsers=1`
+- [ ] 列表、部门选项和统计使用同一个 `deptId` 口径
+- [ ] 批量强退 2 个会话后两个 token 均失效；重复请求结果幂等
+- [ ] 只有 `monitor:online:list` 的账号能看统计，但批量接口为 403
+- [ ] 只有批量权限、没有单条权限及反向组合均按各自权限工作
+- [ ] Redis 中加入空/损坏测试值后，合法会话仍能返回且无 500
+
+### 调度统计
+
+- [ ] fixture 下总数、成功、失败、成功率与手工 SQL 一致
+- [ ] 失败 Top5 来自 `exception_info`，相同首行能正确聚合
+- [ ] 平均耗时来自 `start_time/end_time`，空值和负耗时不参与排名
+- [ ] 默认 7 天、指定 1 天、指定 31 天、超过 31 天四种边界符合契约
+- [ ] 无数据时所有计数为 0、数组稳定、趋势日期完整补 0
+- [ ] 无 `monitor:job:list` 权限直调统计接口返回 403
+
+### 前端与回归
+
+- [ ] 图表重复查询、切换路由和调整窗口后没有重复实例、报错或明显内存泄漏
+- [ ] API 失败时保留筛选条件，可重试，不显示上一次数据为本次结果
+- [ ] 原在线单条强退、原调度日志列表/详情/删除/清空/导出仍可用
+- [ ] fixture 清理后只删除 `intern_w7_` 数据
+
+---
+
+## 6. 推荐拆分与必交证据
+
+1. **W7A（2～3 天）：** 会话 DTO、统一过滤、部门选项、统计、批量强退和权限矩阵。
+2. **W7B（3 天）：** 查询契约、共享 SQL 条件、聚合结果、日期补零、fixture。
+3. **W7C（1～2 天）：** 原生 ECharts、三种数据区、响应式和错误状态。
+
+每个 PR 必须提交：接口示例、关键 SQL、自测命令、403 证据、空数据或失败路径证据。最终补充 `docs/intern/notes/W7-notes.md`，说明：
+
+- 会话数与人数为什么不同；
+- 为什么不能用会刷新变化的 `LoginUser.loginTime` 统计登录人数；
+- `exception_info` 与 `job_message` 的职责；
+- 日期补零放在 Service 而不是前端临时猜测的原因。
