@@ -25,9 +25,9 @@
 
 | # | 检查项 | 命令示例 | 期望 | 完成 |
 | --- | --- | --- | --- | --- |
-| A1 | JDK 17+ | `java -version` | 含 `17` 或更高 | [ ] |
+| A1 | JDK 17 | `java -version` | 主版本为 `17` | [ ] |
 | A2 | Maven | `mvn -version` | 可运行，且指向 JDK 17 | [ ] |
-| A3 | Node / npm | `node -v` / `npm -v` | 建议 Node 16+（以能装依赖为准） | [ ] |
+| A3 | Node / npm | `node -v` / `npm -v` | 当前仓库未固定；使用导师批准并验证的 Node LTS，记录准确版本 | [ ] |
 | A4 | Git | `git --version` | 可运行 | [ ] |
 | A5 | MySQL | 客户端可连接本机实例 | 能建库、能导入 SQL | [ ] |
 | A6 | Redis | `redis-cli ping` | 返回 `PONG` | [ ] |

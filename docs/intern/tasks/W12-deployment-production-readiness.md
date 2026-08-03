@@ -2,6 +2,7 @@
 
 > **前置要求：** [W11-testing-and-ci.md](./W11-testing-and-ci.md) 已通过；测试与构建门禁可在干净环境重复执行。
 > **本周定位：** 把可构建的软件变成可部署、可检查、可升级、可回滚的系统。本周是导师结对任务，不允许实习生独自操作真实生产环境。
+> **配套规范：** [发布与回滚](../../guides/deployment-and-rollback.md) · [可观测性与运维](../../guides/observability-and-operations.md) · [数据库迁移](../../guides/database-migrations.md) · [CI/CD](../../guides/ci-cd-pipeline.md)
 
 | 项 | 内容 |
 | --- | --- |

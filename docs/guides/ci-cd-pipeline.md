@@ -1,288 +1,260 @@
 # CI/CD 工程流水线说明与操作指南
 
-本文说明 **CI/CD 是什么、有什么作用**，以及在本仓库（RuoYi-Vue / Java-base 二次开发）中如何理解、落地与日常操作。  
-内容覆盖：概念、与审计风险的关系、本仓库现状、本机 / Docker / GitHub Actions 三种跑法、推荐落地阶段、开发者日常流程、排障与检查清单。
+本文说明本仓库的 CI 边界、目标流水线和日常 Pull Request 流程。详细测试设计见[自动化测试策略](./testing-strategy.md)；发布、部署和回滚约定见[发布、升级与回滚指南](./deployment-and-rollback.md)。
 
-> **范围说明：** 本文为工程与流程文档。仓库在编写本文时 **可能尚未提交** 正式的 `.github/workflows/ci.yml` 或 Dockerfile；文中的命令与 YAML 为 **推荐落地模板**，以你仓库中实际文件为准。  
-> 安全整改（密钥、Druid、Swagger 暴露等）见 [docs/audit/04-remediation-roadmap.md](../audit/04-remediation-roadmap.md)，与 CI/CD **互补**：CI 负责发现与门禁，整改负责消除配置/代码风险。
+## 1. 文档状态与事实基线
 
----
+### 1.1 截至 2026-08-03 的已核验事实
 
-## 1. 它是什么、不是什么
-
-| 是 | 不是 |
-| --- | --- |
-| 一套「提交代码后自动检查，通过后再交付/部署」的工程实践 | 某一个必须装在本机的桌面软件 |
-| **CI**：持续集成 —— 自动构建、测试、扫描 | 替代代码审查（Code Review）本身 |
-| **CD**：持续交付/部署 —— 自动或一键发布到环境 | 必须一上来就自动发生产（很多团队只做 CI） |
-| 可用 GitHub Actions、GitLab CI、Jenkins、本机脚本、Docker 实现 | 只有云厂商才能做 |
-| 对应审计中的 **SEC-012（供应链/构建扫描）**、**SEC-013（测试）** 的落地手段 | 审计文档本身；文档只描述风险与建议 |
-
-同属「二次开发工程化」的其它主题对比：
-
-| 主题 | 文档 | 关注点 |
+| 检查项 | 当前事实 | 对流水线的影响 |
 | --- | --- | --- |
-| API 文档与在线调试 | [api-docs-swagger.md](./api-docs-swagger.md) | SpringDoc / Swagger 怎么用 |
-| 安全整改批次 | [04-remediation-roadmap.md](../audit/04-remediation-roadmap.md) | P1–P3 改什么配置/代码 |
-| **CI/CD 流水线（本文）** | 本文 | 构建、测试、扫描、发布如何自动化 |
+| 后端项目 | 根 POM 是 Maven 多模块项目, `java.version` 为 17 | 目标 CI 应使用 JDK 17 |
+| 本机后端工具 | 当前环境找不到 `java` 和 `mvn` | 本次不能在本机验证 Maven 构建或测试 |
+| Maven 固定方式 | 仓库没有 Maven Wrapper | 当前 Maven 版本不可复现 |
+| 后端测试 | 仓库中 `src/test` 文件数为 0, POM 未检出 JUnit/Surefire/Testcontainers/JaCoCo 配置 | `mvn test` 即使退出 0 也不能视为已有测试门禁 |
+| 前端项目 | `ruoyi-ui` 使用 Vue `2.6.12`、Vue CLI `4.4.6` | 目标 Node 版本必须先做兼容性验证 |
+| 前端 scripts | 只有 `dev`、`build:prod`、`build:stage`、`preview` | 当前没有 `test` 或 `lint` 命令 |
+| 前端 lockfile | 仓库中没有 npm/yarn/pnpm lockfile, `ruoyi-ui/.gitignore` 还忽略 `package-lock.json` | 当前不能使用 `npm ci` 作为可复现门禁 |
+| 本机前端工具 | Node `v24.16.0`、npm `11.13.0` | 仅为当前机器观测值, 不等于项目目标版本 |
+| GitHub Actions | `.github` 只有 `FUNDING.yml`, `.github/workflows` 中没有 workflow | 当前 push/PR 不会自动执行业务构建、测试或扫描 |
+| Docker | 仓库未检出 Dockerfile 或 Compose 文件 | 当前没有仓库自带的容器构建/部署入口 |
+| 本地辅助脚本 | `bin/package.bat` 跳过测试打包；`ry.sh` / `ry.bat` 启停固定 jar；前端批处理使用 `npm install` | 可作本地辅助，不能充当 CI 门禁或完整发布流程 |
 
----
+以上是当前基线, 不是对未来落地结果的猜测。基线变化后应在 PR 中同时更新本节和修订记录。
 
-## 2. 术语速查
+### 1.2 当前能力与目标模板
 
-| 术语 | 含义 |
-| --- | --- |
-| **CI（Continuous Integration）** | 持续集成。多人/多次提交后，系统自动合并构建与验证，尽早发现冲突与破坏。 |
-| **CD（Continuous Delivery）** | 持续交付。流水线产出**随时可发布**的制品（jar、镜像、静态资源包），上线通常仍可人工确认。 |
-| **CD（Continuous Deployment）** | 持续部署。验证通过后**自动部署**到目标环境（要求门禁更严）。口语里常与 Delivery 统称 CD。 |
-| **Pipeline / 流水线** | 按阶段串联的自动化任务：检出代码 → 构建 → 测试 → 扫描 →（打包）→（部署）。 |
-| **Job / Step** | 流水线中的作业与步骤；失败通常使整次运行失败（fail-fast，可配置）。 |
-| **Artifact（制品）** | 构建产物，如 `ruoyi-admin.jar`、`ruoyi-ui/dist`、扫描 HTML 报告。 |
-| **Runner** | 执行流水线的机器。GitHub 托管为 `ubuntu-latest` 等；也可自建 Runner。 |
-| **门禁（Gate）** | 未通过则不允许合并/发布，例如 PR 必须 CI 绿。 |
-| **锁文件（lockfile）** | 如 `package-lock.json`，锁定前端依赖精确版本，便于 `npm ci` 可复现安装。 |
-| **SEC-012 / SEC-013** | 审计台账项：供应链与 CI 扫描；补充自动化测试。见 [03-security.md](../audit/03-security.md)。 |
-
----
-
-## 3. 为什么需要 CI/CD（作用）
-
-### 3.1 CI 的作用
-
-| 作用 | 没有 CI 时 | 有 CI 时 |
+| 范围 | 当前基线 | W11 目标 |
 | --- | --- | --- |
-| 统一构建 | 「我本机能编过」≠ 别人/服务器能编过 | 固定环境（JDK 17、同一 Maven/Node）每次重跑 |
-| 尽早失败 | 合并很久后才发现编译/测试挂了 | push/PR 当时就红，改动面还小 |
-| 自动测试 | 靠人工记得跑，仓库还可能几乎无测试 | `mvn test` 等进入固定步骤（SEC-013） |
-| 依赖与漏洞可见 | 偶尔有人手动 audit | 定期/每次流水线出报告（SEC-012） |
-| 保护主分支 | 坏代码直接进 `master` | PR Checks 不绿不合并（可配置） |
-| 可追溯 | 口口相传「上次发版步骤」 | 每次 run 有日志与提交 SHA |
+| 构建工具 | JDK/Maven 在当前机器不可用, 无 Wrapper | JDK 17 + 固定 Maven/Wrapper |
+| 前端安装 | 无 lockfile, 只能产生漂移安装 | 固定 Node/npm + 提交 lockfile + `npm ci` |
+| 自动化测试 | 后端和前端均为零测试能力 | 真实单元、Web/安全、集成和 Vue 2 测试 |
+| CI | 无 workflow | PR 自动运行 docs/backend/frontend/audit checks |
+| 合并门禁 | 本文未核验远程分支保护设置 | required checks + review 后才能合并 |
+| CD | 无已核验部署 workflow 或容器文件 | W12 再设计发布、部署、观察和回滚 |
 
-### 3.2 CD 的作用
+本文第 5-8 节均为 **推荐目标模板**。在相关文件真正提交且干净环境验证前, 不得在交付记录中写“CI 已存在”“测试已通过”或“Docker 已支持”。
 
-| 作用 | 说明 |
-| --- | --- |
-| 缩短上线路径 | 从「制品已有」到「环境已更新」步骤脚本化 |
-| 减少人为失误 | 少手工 scp、少漏改配置项（密钥仍应走密钥管理，勿写死镜像） |
-| 可重复与回滚 | 同一 tag/镜像可重部署；失败可切回上一版本 |
-| 环境一致 | 测试/预发/生产用相近的构建产物与启动方式 |
+## 2. CI/CD 是什么
 
-### 3.3 和「安全整改」的分工
+| 术语 | 含义 | 本仓库当前定位 |
+| --- | --- | --- |
+| CI | 每次变更自动构建、测试、检查和扫描 | W11 目标, 当前未落地 |
+| Continuous Delivery | 产出可批准发布的版本化制品 | W12 及后续目标 |
+| Continuous Deployment | 门禁通过后自动部署到目标环境 | 当前不做, 不能直接自动发生产 |
+| Check | PR 上可成功或失败的具体 job | 稳定后设为 required check |
+| Artifact | 测试报告、覆盖率、jar、前端构建产物或扫描报告 | 只有 workflow 配置上传后才存在 |
+| Gate | 未通过就禁止合并或发布的规则 | 需要 workflow 与平台分支保护共同实现 |
+
+CI 不能替代代码审查, 测试也不能替代生产配置核验。安全整改见 [安全审计台账](../audit/03-security.md) 和 [整改路线图](../audit/04-remediation-roadmap.md)。
+
+## 3. 默认协作流程
+
+默认流程固定为 feature branch + Pull Request + checks:
 
 ```text
-安全整改  →  消除已知风险（换密钥、关 Swagger 公网、收紧 CORS…）
-CI/CD     →  每次变更自动验证构建/测试/扫描，防止回退与漏检
+同步默认分支
+  -> 创建 feature/<topic>
+  -> 本地运行适用检查
+  -> push feature 分支
+  -> 创建或更新 Pull Request
+  -> required checks 全部通过
+  -> Code Review 通过
+  -> 合并默认分支
+  -> 默认分支再次验证/产出候选制品
 ```
 
-两者并行：先做 P1 整改不阻塞搭 CI；搭好 CI 后，整改提交也会被自动验证「是否还能编过」。
+直接 push `master`/`main` 不是本仓库的日常开发流程。目标分支保护应限制直接 push; 紧急变更也应通过受审计的例外流程, 并补齐同等 checks 和复盘记录。
 
----
-
-## 4. 端到端流程长什么样
-
-```text
-开发者改代码
-    │
-    ▼
-git commit
-    │
-    ▼
-git push  /  打开或更新 Pull Request
-    │
-    ▼
-┌──────────────────────── CI ────────────────────────┐
-│  1. Checkout 仓库                                   │
-│  2. 准备 JDK 17 / Node（或 Docker 镜像内工具链）     │
-│  3. 后端：mvn -B clean package / test               │
-│  4. 前端：npm ci（或 install）+ npm run build:prod  │
-│  5. 可选：OWASP Dependency-Check、npm audit         │
-│  6. 上传制品或扫描报告（Artifact）                    │
-│  结果：成功（绿）或失败（红 + 日志）                   │
-└────────────────────────────────────────────────────┘
-    │
-    │ 失败 → 根据日志修复 → 再 push（不进入发布）
-    ▼
-┌──────────────────────── CD ────────────────────────┐
-│  持续交付：保留 jar / dist / 镜像，待人工批准发布      │
-│  持续部署：自动发布到测试或生产（需额外配置与权限）    │
-└────────────────────────────────────────────────────┘
-    │
-    ▼
-目标环境运行新版本（健康检查 / 必要时回滚）
-```
-
-**对开发者而言：** 日常「运行流水线」≈ **push 或开 PR**（或在 Actions 页手动 Run），而不是在本机点一个叫 CI 的程序。
-
----
-
-## 5. 本仓库现状（基线）
-
-以下为审计与文档编写时的常见状态，落地后请以仓库实际文件为准并回写本节。
-
-| 项 | 典型现状 | 含义 |
-| --- | --- | --- |
-| 后端 | Maven 多模块，Java 17，Spring Boot 4.x | CI 应使用 **JDK 17** |
-| 前端 | `ruoyi-ui`，Vue 2 + Vue CLI | CI 需 Node；建议 **Node 18/20 LTS** |
-| 测试代码 | 仓库内 `src/test` 往往很少或为 0 | `mvn test` 可能「空跑通过」，需逐步补 SEC-013 |
-| 前端 lockfile | 可能无 `package-lock.json` | `npm ci` / `npm audit` 受限；需团队约定是否提交 lock |
-| GitHub Actions | 可能仅有 `.github/FUNDING.yml`，**无业务 workflow** | **CI 未落地** 时 push 不会自动构建 |
-| Docker | 官方骨架通常无 Dockerfile/compose | 可用官方 `maven`/`node` 镜像做构建沙箱；整站编排需自补 |
-| 远程 | `origin` 指向自有 GitHub（如 Java-base）时，Actions 在该仓库生效 | 需仓库 **Settings → Actions** 允许运行 |
-
-**审计对应：**
-
-- 构建与依赖扫描未进流水线 → [03-security.md](../audit/03-security.md) **SEC-012**
-- 缺少自动化测试 → **SEC-013**
-- 整改批次 B3/B4 → [04-remediation-roadmap.md](../audit/04-remediation-roadmap.md)
-
----
-
-## 6. 三种实现路径（任选组合）
-
-### 6.1 路径对比
-
-| 路径 | 本机需要 | 触发方式 | 适合 |
-| --- | --- | --- | --- |
-| **A. 本机工具链** | JDK 17、Maven、Node | 手动敲命令 | 深度调试、无网络 CI 时 |
-| **B. Docker 构建沙箱** | 主要 Docker | 手动 `docker run` / 以后 compose | 本机不想装 JDK/Node |
-| **C. GitHub Actions** | 只需 Git（能 push） | push / PR / 手动 Run | 团队门禁、与远程协作 |
-
-推荐组合：
-
-```text
-日常开发    →  A 或 B 本地验证（可选）
-合并门禁    →  C 必跑
-联调整站    →  本机或 compose 起 MySQL + Redis + 应用（属运行环境，不单是 CI）
-生产发布    →  CD（后期）：制品/镜像 + 服务器或 K8s
-```
-
-### 6.2 路径 A：本机命令（参考）
+推荐命令:
 
 ```bash
-# 工具检查
-java -version    # 17
-mvn -version
+git switch master
+git pull --ff-only origin master
+git switch -c feature/your-topic
+
+# 修改后只暂存本任务文件
+git status
+# 将下面路径替换为本任务的实际文件
+git add -- path/to/changed-file
+git commit -m "type: describe the change"
+git push -u origin feature/your-topic
+```
+
+随后在平台创建 Pull Request, 等待 checks 和 review。若仓库默认分支不是 `master`, 第一、二行应替换为平台显示的真实默认分支, workflow 的触发分支也必须同步修改。
+
+## 4. 固定工具链策略
+
+### 4.1 JDK 与 Maven
+
+- JDK 目标为 17, 与根 POM 的 `java.version` 一致。
+- 团队选择并验证一个受支持的 Maven 版本, 优先提交 Maven Wrapper 和校验配置。
+- 本地与 CI 使用同一 Wrapper; 日志记录 `java -version` 和 `./mvnw -version`。
+- 在 Wrapper 落地前, 运行器自带 Maven 只能用于探索, 不能称为版本已固定。
+
+### 4.2 Node 与 npm
+
+固定策略是: **团队先选择并验证一个受支持 Node LTS, 随后 pin 主版本**。验证内容至少包括 `npm ci`、Vue 2 单元测试、lint 和 `build:prod`。
+
+当前 Node `v24.16.0`/npm `11.13.0` 只是当前机器的观测值, 不能直接等同于目标 Node LTS, 也不能因为 `package.json.engines` 范围宽松就跳过兼容性验证。
+
+W11 落地后应只有一个版本来源, 例如:
+
+- 根目录 `.node-version` 或 `.nvmrc` 固定已验证的 Node 主版本。
+- GitHub Actions 通过 `node-version-file` 读取同一文件。
+- npm 版本随所选 Node 固定; 如需单独固定, 使用团队确认的标准方式并记录原因。
+- `package.json` 的 `engines` 与实际支持范围保持一致。
+
+不要在不同文档、Dockerfile 和 workflow 中各写一个互相矛盾的 Node 版本。
+
+### 4.3 前端 lockfile
+
+W11 选择 npm 后应:
+
+1. 停止忽略 `ruoyi-ui/package-lock.json`。
+2. 在固定 Node/npm 环境生成并提交 lockfile。
+3. 本地完整验证和 CI 都使用 `npm ci`。
+4. `package.json` 与 lockfile 必须同一 PR 更新。
+5. 大量无关依赖变化不得混入业务 PR。
+
+lockfile 落地前, `npm ci` 和依赖 audit 模板均不可用, 这是应显式失败的前置条件, 不是用 `npm install` 静默兜底的理由。
+
+## 5. 目标流水线设计
+
+### 5.1 Job 划分
+
+| job | 责任 | 目标门禁 |
+| --- | --- | --- |
+| `docs-check` | Markdown 链接、格式、迁移命名和 `git diff --check` | PR 必过 |
+| `backend-test` | JDK 17、Maven Wrapper、JUnit 5、Testcontainers、覆盖率 | PR 必过, executed tests > 0 |
+| `frontend-test-build` | 固定 Node、`npm ci`、lint、Vue 2 测试、生产构建 | PR 必过, executed tests > 0 |
+| `dependency-audit` | 后端和前端依赖扫描、报告与例外校验 | 按批准的风险等级阻断 |
+| `package` | 基于已验证 commit 生成版本化 jar/dist 或镜像 | 合并后或 tag 触发 |
+
+详细测试金字塔、JUnit/Surefire 约定、Testcontainers、前端用例和零测试保护统一见 [testing-strategy.md](./testing-strategy.md)。CI 文档只定义如何调度 W11 落地后的测试命令, 不重复维护测试清单。
+
+### 5.2 Job 依赖
+
+```text
+docs-check -----------+
+backend-test ---------+--> required checks --> merge
+frontend-test-build --+
+dependency-audit -----+
+
+merge/tag + required checks --> package
+package --> W12 的发布审批/部署/回滚流程
+```
+
+后端和前端 job 可并行。`package` 不应通过重新跳过测试来制造一个未经验证的制品, 应绑定已经通过 checks 的 commit SHA。
+
+### 5.3 触发策略
+
+- `pull_request`: 针对默认分支的每个 PR 运行必要 checks。
+- `push`: 合并到默认分支后再次验证, 可触发候选制品。
+- `workflow_dispatch`: 仅用于受控重跑或维护任务, 不能绕过分支保护。
+- `schedule`: 适合较慢的完整依赖扫描, 但 PR 仍需执行团队规定的快速阻断检查。
+- 路径过滤必须经过评审。修改共享 POM、权限、数据库脚本或前端公共代码时不能跳过相关 job。
+
+## 6. 本地命令契约
+
+> **模板状态:** 以下命令只描述 W11 完成后的统一入口。当前环境缺少 JDK/Maven, 仓库也缺少 Wrapper、测试、lockfile 和前端 test/lint scripts, 因而本文不声称这些命令现在可以运行。
+
+### 6.1 工具版本检查
+
+```bash
+java -version
+./mvnw -version
 node -v
 npm -v
+```
 
-cd /path/to/Java-base
+预期不是“任意能输出版本”, 而是与团队已提交的工具链文件和 CI 日志一致。
 
-# 后端构建（当前测试少时可先 skip）
-mvn -B clean package -DskipTests
+### 6.2 后端目标命令
 
-# 后端测试（补齐用例后作为门禁）
-mvn -B test
+```bash
+# 快速反馈: 单元和 Web 切片
+./mvnw -B test
 
-# 前端
+# 完整门禁: 集成测试、报告和验证
+./mvnw -B verify
+```
+
+完整合并门禁使用 `verify`, 并验证 Surefire/Failsafe 报告中的 executed test 数大于 0。不能以 `-DskipTests` 作为合并门禁命令。
+
+### 6.3 前端目标命令
+
+```bash
 cd ruoyi-ui
-npm install          # 若已提交 lockfile，CI 侧优先 npm ci
+npm ci
+npm run lint
+npm run test:unit:ci
 npm run build:prod
-npm audit --omit=dev || true
 ```
 
-### 6.3 路径 B：Docker 仅构建（无需本机 JDK）
+这些 script 名是 W11 的推荐契约。落地时必须先写入 `package.json` 并在固定 Node LTS 上验证, 不能只把不存在的命令写进 workflow。
+
+### 6.4 容器构建沙箱
+
+仓库当前没有 Dockerfile 或 Compose。若团队在 W11 只用官方工具镜像提供构建沙箱, 这仍是外部执行方式, 不代表应用已经容器化。目标命令示例:
 
 ```bash
-cd /path/to/Java-base
-
-# 后端（建议挂载 Maven 本地仓库卷加速二次构建）
+# 仅在 Wrapper 已提交、镜像版本已固定后使用
 docker run --rm \
-  -v "$PWD":/app \
-  -v maven-repo:/root/.m2 \
-  -w /app \
-  maven:3.9-eclipse-temurin-17 \
-  mvn -B clean package -DskipTests
+  -v "$PWD":/workspace \
+  -w /workspace \
+  "eclipse-temurin:${TEAM_JDK17_IMAGE_TAG:?set TEAM_JDK17_IMAGE_TAG}" \
+  ./mvnw -B verify
 
-# 后端测试
+# 仅在 Node 版本和 lockfile 已固定后使用
 docker run --rm \
-  -v "$PWD":/app \
-  -v maven-repo:/root/.m2 \
-  -w /app \
-  maven:3.9-eclipse-temurin-17 \
-  mvn -B test
-
-# 前端
-docker run --rm \
-  -v "$PWD/ruoyi-ui":/app \
-  -w /app \
-  node:20-bookworm \
-  bash -c "npm install && npm run build:prod"
+  -v "$PWD/ruoyi-ui":/workspace \
+  -w /workspace \
+  "node:${TEAM_NODE_LTS_IMAGE_TAG:?set TEAM_NODE_LTS_IMAGE_TAG}" \
+  sh -c 'npm ci && npm run lint && npm run test:unit:ci && npm run build:prod'
 ```
 
-说明：
+`TEAM_JDK17_IMAGE_TAG` 和 `TEAM_NODE_LTS_IMAGE_TAG` 必须在执行前设置为团队验证过的非浮动 tag; 未设置时 shell 会立即报错。整站 Docker/Compose、数据库迁移和运行健康检查属于 W12, 不由这个构建沙箱示例证明。
 
-- 产物写在**宿主机**目录（`-v "$PWD":/app`），与本机构建一致。
-- 首次拉镜像与下依赖较慢，属正常现象。
-- **整站** `docker compose up`（MySQL/Redis/后端）需另补 compose 文件，与「仅 CI 构建」不是同一件事。
+## 7. GitHub Actions 目标模板
 
-### 6.4 路径 C：GitHub Actions（云端 CI）
+### 7.1 使用前置条件
 
-**开发者操作：**
+下列模板只有在这些 W11 交付物已经存在时才可启用:
 
-```bash
-git add .
-git commit -m "说明变更"
-git push origin <branch>
-# 浏览器：GitHub 仓库 → Actions → 查看本次 run
-```
+- `.mvn/wrapper/**` 和可执行的 `mvnw`。
+- 后端真实测试、JUnit 5/Surefire/Failsafe 配置和报告路径。
+- `.node-version` 中已验证的 Node LTS 主版本。
+- `ruoyi-ui/package-lock.json`。
+- `lint` 和 `test:unit:ci` scripts 以及真实前端测试。
+- 可执行的 `scripts/ci/verify-test-counts.sh`，能解析后端与前端报告并阻止零测试空跑。
 
-或：开 Pull Request → 在 PR 页查看 **Checks**。
+截至基线日期, 上述前置条件均未完整具备。模板不是仓库现有 workflow。
 
-**平台侧：** 由 `.github/workflows/*.yml` 定义何时跑、跑什么（见第 8 节模板）。
+### 7.2 最小 PR 模板
 
----
-
-## 7. 推荐落地阶段（工程批次）
-
-与整改路线中的工程项对齐，建议分阶段，避免一次做完所有 CD。
-
-| 阶段 | 目标 | 完成标准 | 对应 |
-| --- | --- | --- | --- |
-| **E0** | 任意环境能构建 | 本机或 Docker 或 CI 上 `mvn package` + 前端 `build:prod` 成功 | 基线 |
-| **E1** | 提交 lock 策略 | 团队决定是否提交 `ruoyi-ui/package-lock.json`；CI 用 `npm ci` 或 `npm install` | 可复现 |
-| **E2** | GitHub Actions CI | 存在 workflow；push/PR 自动跑后端构建 + 前端构建 | **最小可用 CI** |
-| **E3** | 测试门禁 | 至少若干单元/切片测试；`mvn test` 有真实断言 | SEC-013 |
-| **E4** | 扫描 | PR 或 nightly：OWASP 与/或 `npm audit`；报告可下载 | SEC-012 |
-| **E5** | 制品归档 | Actions 上传 jar/dist 或扫描 HTML | 交付准备 |
-| **E6** | CD（可选） | 部署到测试环境；生产需审批/手动 | 持续交付/部署 |
-
-原则：
-
-1. **先 CI 后 CD** —— 构建不稳时不要自动发生产。  
-2. **扫描可夜间跑** —— OWASP 拉 NVD 慢，勿强行拖死每个 PR。  
-3. **空测试套件变绿 ≠ 质量足够** —— 需按 SEC-013 补关键路径。
-
----
-
-## 8. GitHub Actions 推荐配置（模板）
-
-### 8.1 文件位置
-
-```text
-.github/workflows/ci.yml
-```
-
-### 8.2 最小可用示例（构建 + 测试 + 前端）
-
-以下为**模板**，落地时请按仓库是否已有 lockfile 调整前端步骤；提交到默认分支后即可在 Actions 中看到运行。
+目标文件位置为 `.github/workflows/ci.yml`。以下以 `master` 为当前任务约定的默认分支名; 启用前必须在 GitHub Settings 核实。
 
 ```yaml
 name: CI
 
 on:
-  push:
-    branches: [master]
   pull_request:
     branches: [master]
-  workflow_dispatch:  # 允许在 Actions 页手动「Run workflow」
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  backend:
-    name: Backend (Maven)
+  backend-test:
+    name: Backend test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -295,22 +267,33 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Build
-        run: mvn -B clean package -DskipTests
+      - name: Verify target prerequisites
+        shell: bash
+        run: |
+          test -x ./mvnw
+          find . -type f \
+            \( -path '*/src/test/java/*Test.java' -o -path '*/src/test/java/*IT.java' \) \
+            -print -quit | grep -q .
 
-      - name: Test
-        run: mvn -B test
+      - name: Test and verify
+        run: ./mvnw -B verify
 
-      # 可选：上传 jar（路径以实际 target 为准）
-      # - name: Upload admin jar
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: ruoyi-admin-jar
-      #     path: ruoyi-admin/target/*.jar
-      #     if-no-files-found: ignore
+      - name: Verify executed backend tests
+        run: ./scripts/ci/verify-test-counts.sh backend
 
-  frontend:
-    name: Frontend (Vue CLI)
+      - name: Upload backend reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            **/target/surefire-reports/**
+            **/target/failsafe-reports/**
+            **/target/site/jacoco/**
+          if-no-files-found: error
+
+  frontend-test-build:
+    name: Frontend test and build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -319,332 +302,242 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify target prerequisites
+        shell: bash
+        run: |
+          test -f ../.node-version
+          test -f package-lock.json
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          # 若已提交 package-lock.json，取消下一行注释并改用 npm ci
-          # cache: npm
-          # cache-dependency-path: ruoyi-ui/package-lock.json
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: ruoyi-ui/package-lock.json
 
-      - name: Install
-        run: npm install
-        # 有 lockfile 时改为: npm ci
+      - name: Verify target scripts and tests
+        shell: bash
+        run: |
+          node -e "const s=require('./package.json').scripts||{}; process.exit(s.lint&&s['test:unit:ci']?0:1)"
+          find . -type f \
+            \( -name '*.spec.js' -o -name '*.test.js' \) \
+            -print -quit | grep -q .
 
-      - name: Build production
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit test
+        run: npm run test:unit:ci
+
+      - name: Verify executed frontend tests
+        run: ../scripts/ci/verify-test-counts.sh frontend
+
+      - name: Build production bundle
         run: npm run build:prod
 
-      - name: Audit (report only)
-        run: npm audit --omit=dev || true
-```
-
-### 8.3 扫描如何放入流水线
-
-| 频率 | 建议 |
-| --- | --- |
-| **每个 PR** | 编译 + 测试 + 前端 build；`npm audit` 可只出报告不失败 |
-| **每日/每周 / 手动** | OWASP Dependency-Check；完整依赖报告上传 Artifact |
-| **发版前** | 全量 CI + 人工过一遍高危 CVE 与整改项 |
-
-OWASP 示例（宜独立 job 或 `schedule`，避免拖慢每个 PR）：
-
-```yaml
-  dependency-check:
-    name: OWASP Dependency-Check
-    runs-on: ubuntu-latest
-    # 可改为 only schedule / workflow_dispatch
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: maven
-      - name: Dependency-Check
-        run: |
-          mvn -B org.owasp:dependency-check-maven:check \
-            -DfailBuildOnCVSS=11 \
-            -DskipProvidedScope=true
-        # failBuildOnCVSS=11：先只报告不因 CVE 失败；成熟后可降到 9 或 7
-      - uses: actions/upload-artifact@v4
+      - name: Upload frontend reports
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: dependency-check-report
-          path: '**/dependency-check-report.html'
+          name: frontend-test-reports
+          path: ruoyi-ui/coverage/**
+          if-no-files-found: error
 ```
 
-首次/无 NVD 缓存时会很慢；可配置 NVD API Key（以 OWASP 插件文档为准）并注意 **不要把密钥写进仓库明文**（用 GitHub Secrets）。
+注意事项:
 
-### 8.4 分支保护（推荐，在 GitHub 网页配置）
+- `actions/setup-node` 的 `node-version-file` 路径相对仓库根, 即使后续 `run` 默认目录为 `ruoyi-ui` 也仍写 `.node-version`。
+- 源文件检查只能防止测试文件为 0。模板中的 `verify-test-counts.sh` 必须解析实际报告并要求 executed test 数大于 0；脚本契约见[零测试空跑保护](./testing-strategy.md#9-防止零测试空跑)。
+- `if-no-files-found: error` 是目标门禁的一部分。报告路径改变时应更新模板, 不能改为忽略来隐藏配置错误。
+- 先在 feature branch 的 PR 验证 workflow。首次引入 checks 后, 再把稳定 job 设为 required。
 
-1. 仓库 **Settings → Branches → Branch protection rules**  
-2. 对 `master`（或 `main`）：  
-   - Require a pull request before merging（团队协作时）  
-   - **Require status checks to pass** → 勾选 `Backend (Maven)` / `Frontend (Vue CLI)` 等  
-3. 效果：CI 不绿无法合并，形成真正门禁。
+### 7.3 文档与依赖扫描
 
----
+`docs-check` 应调用团队选定并固定的 Markdown 链接检查器, 同时执行迁移命名检查和差异空白检查。不要在 workflow 临时下载一个未固定版本的任意脚本。
 
-## 9. 开发者日常怎么操作
-
-### 9.1 第一次启用 CI 时
-
-1. 将 workflow 文件加入仓库（或由维护者提交）。  
-2. 推送：
-
-   ```bash
-   git add .github/workflows/ci.yml
-   git commit -m "ci: add GitHub Actions build pipeline"
-   git push origin master
-   ```
-
-3. 打开 `https://github.com/<owner>/<repo>/actions`  
-4. 确认最新 run 为成功；失败则点进 job 日志排查。  
-5. 若 Actions 被禁用：**Settings → Actions → General → Allow actions**。
-
-### 9.2 日常开发（直接推 master —— 个人仓库常见）
+依赖扫描建议独立 job, 在 lockfile 落地后执行前端命令:
 
 ```bash
-# 1. 修改代码
-# 2. 提交
-git status
-git add .
-git commit -m "清晰说明本次变更"
-
-# 3. 推送即触发 CI
-git push origin master
-
-# 4. 浏览器打开 Actions，等待结果
+cd ruoyi-ui
+npm ci
+npm audit --omit=dev --audit-level=high
 ```
 
-### 9.3 日常开发（分支 + PR —— 推荐）
+后端扫描工具、CVE 阻断等级和临时例外格式由安全评审确定。允许例外时必须记录漏洞、影响、负责人和到期日, 不能用无条件成功掩盖结果。
 
-```bash
-git checkout master
-git pull origin master
-git checkout -b feature/your-topic
+## 8. 分支保护与首次启用
 
-# 修改 → 提交
-git add .
-git commit -m "feat: ..."
-git push -u origin feature/your-topic
-```
+### 8.1 首次引入 workflow
 
-1. 在 GitHub 创建 Pull Request。  
-2. 等待 PR 上 **Checks** 全部通过。  
-3. 代码审查通过后 Merge。  
-4. 合并进默认分支后，可能再次触发 `push` 工作流。
+1. 在 feature branch 添加工具链、测试和 workflow。
+2. 创建 PR, 由维护者检查 workflow 权限、第三方 action 来源和命令。
+3. 在 PR 上反复验证真实测试数、失败报告和构建结果。
+4. 合并首个 workflow 后, 在默认分支上确认一次完整 run。
+5. 将稳定 job 名配置为 required checks。
+6. 开启“Require a pull request before merging”和至少一名 reviewer。
+7. 限制绕过规则和直接 push 默认分支的权限。
 
-### 9.4 如何阅读结果
+首次 workflow PR 在 required check 尚不存在时需要维护者审查完成引导, 但这不是长期关闭门禁的理由。
 
-| 界面 | 看什么 |
+### 8.2 Required checks
+
+GitHub Settings 中至少要求:
+
+- PR 合并前通过 `Backend test`。
+- PR 合并前通过 `Frontend test and build`。
+- `docs-check` 和已批准的依赖扫描按团队规则设为 required。
+- 新提交到 PR 后撤销过期批准或重新要求 checks。
+- 对话解决后才允许合并。
+- 管理员是否允许绕过应有书面策略和审计记录。
+
+job `name` 改名会影响分支保护绑定。重命名前先安排平台配置迁移, 避免出现永远等待的旧 check。
+
+## 9. 制品、缓存和密钥
+
+### 9.1 制品
+
+- 测试失败时仍上传 Surefire/Failsafe/Jest/JaCoCo 报告。
+- jar、dist 或镜像必须关联 commit SHA 和版本, 不能只有 `latest`。
+- 构建制品与部署凭据分离; PR workflow 不持有生产部署权限。
+- Artifact 保留期和可见性由仓库敏感度决定。
+
+### 9.2 缓存
+
+- Maven 和 npm 缓存只用于提速, 不能替代 lockfile 或固定版本。
+- 缓存 key 至少随 POM、lockfile 和工具版本变化。
+- 排查依赖问题时从空缓存重跑一次, 证明结果可复现。
+- 不缓存工作区中的密钥、测试数据库文件或用户上传内容。
+
+### 9.3 密钥与权限
+
+- workflow 顶层从最小 `permissions` 开始, job 需要额外权限时单独说明。
+- NVD Key、镜像仓库口令和部署凭据只能放在平台 Secrets/Environment 中。
+- 不在日志打印 token、密码、完整 `Authorization` 或数据库连接串。
+- 来自 fork 的 PR 默认不能获取敏感 secrets; 不使用高权限事件执行未审查代码。
+- 第三方 action 固定到团队批准的版本或 commit, 定期审查更新。
+
+## 10. 失败排查
+
+### 10.1 没有触发 workflow
+
+按顺序检查:
+
+1. `.github/workflows/*.yml` 是否真实存在于远程分支。
+2. YAML 是否能被平台解析。
+3. `pull_request.branches` 是否匹配目标默认分支。
+4. Actions 是否在仓库 Settings 中启用。
+5. PR 是否来自受路径过滤影响的变更。
+6. 查看的是 `origin` 对应仓库, 不是只查看 `upstream`。
+
+当前基线没有 workflow, 所以“没有 Actions 记录”是预期现象, 不是运行故障。
+
+### 10.2 后端失败
+
+| 现象 | 优先检查 |
 | --- | --- |
-| **Actions** 列表 | 某次 commit 的 run 绿/红/黄（进行中） |
-| 某次 run → job | 是后端挂还是前端挂 |
-| 展开失败 step | 编译错误、测试断言、npm 错误原文 |
-| **Re-run jobs** | 怀疑瞬时网络/缓存问题时重跑同一提交 |
-| **Artifacts** | 下载扫描报告或 jar（若已配置上传） |
+| `mvnw` 不存在或无执行权限 | Wrapper 是否提交, executable bit 是否保留 |
+| 编译版本不一致 | `java -version`、POM `java.version`、setup-java 配置 |
+| BUILD SUCCESS 但零测试 | Surefire/Failsafe 版本、命名、报告 executed count |
+| Testcontainers 超时 | Runner 容器能力、镜像版本、等待策略、容器日志 |
+| 只在 CI 失败 | 时区、locale、共享状态、未提交资源、缓存和外部网络 |
 
-### 9.5 红了怎么办（通用顺序）
+### 10.3 前端失败
 
-1. 打开失败 step 日志，定位**第一条 ERROR**。  
-2. 在本地或 Docker 用**同一命令**复现（见第 6 节）。  
-3. 修复后重新 commit + push（或推同一 PR 分支）。  
-4. 不建议：为了变绿而盲目 `-DskipTests` 长期留在主分支门禁（临时排查除外）。
+| 现象 | 优先检查 |
+| --- | --- |
+| `npm ci` 报 lockfile 错误 | lockfile 是否提交, 是否与 `package.json` 同版本生成 |
+| Node 不兼容 | `.node-version`、setup-node 日志、Vue CLI 4 兼容性记录 |
+| script 不存在 | `package.json.scripts`, 不要临时改 workflow 跳过 |
+| 测试无用例 | Jest 配置、文件命名、是否误加允许空套件选项 |
+| 构建内存不足 | 先确认泄漏/依赖问题, 再评估 Runner 资源和受控 `NODE_OPTIONS` |
 
----
+### 10.4 通用排查顺序
 
-## 10. CD：持续交付 / 部署（后期）
+1. 打开失败 job, 定位第一条根因。
+2. 记录 commit SHA 和实际工具版本。
+3. 用第 6 节同一命令在固定环境复现。
+4. 必要时从空缓存、空 `node_modules` 和空测试数据库重跑。
+5. 修复后提交到同一 feature branch, 让 PR checks 重新运行。
+6. 不通过跳过测试、降低覆盖率或允许失败来“修绿”。
 
-当前文档以 **CI 为主**。CD 常见演进：
+## 11. 分阶段落地
 
-| 级别 | 做法 | 触发 |
+| 阶段 | 目标 | 完成证据 |
 | --- | --- | --- |
-| L0 手工 | CI 只验证；人用 `scp`/面板上传 jar 与前端 dist | 发版日 |
-| L1 半自动 | CI 产出 Artifact；脚本一键拉制品部署测试机 | 手动 workflow / 打 tag |
-| L2 自动测试环境 | merge 到 master 后自动部署 **staging** | push 到 master |
-| L3 生产 | 需审批、蓝绿/滚动、密钥与回滚预案 | 发布负责人批准 |
+| E0 基线 | 记录工具、测试数、lockfile 和 workflow 状态 | 本文第 1 节与 PR 证据一致 |
+| E1 工具链 | JDK/Maven/Node/npm 可复现 | Wrapper、Node 版本文件、lockfile, 干净环境日志 |
+| E2 真实测试 | 后端/前端有真实断言和隔离依赖 | 报告 executed > 0, 故意破坏会失败 |
+| E3 PR CI | docs/backend/frontend jobs 自动运行 | feature PR checks 链接与失败报告 |
+| E4 门禁 | required checks 和 review 生效 | 失败 PR 无法合并 |
+| E5 扫描 | 报告、阻断等级和例外流程可审计 | 扫描报告及未过期例外 |
+| E6 制品 | 已验证 SHA 生成版本化制品 | Artifact/镜像元数据与 commit 对应 |
+| E7 发布 | W12 设计并演练部署和回滚 | 独立 runbook 和隔离环境演练记录 |
 
-**注意：**
+W11 是 E1-E5 的目标任务, 不是现有能力描述。发布前必须先稳定 CI, 不把自动生产部署塞进首个 workflow。
 
-- 生产 **密钥、数据库口令、JWT secret** 使用环境变量或密钥管理，不要打进镜像层或提交到 Git（与 SEC-001/002 一致）。  
-- 生产应关闭或限制 Swagger/Druid 公网暴露（SEC-003），部署清单里单独检查。  
-- CD 失败要有回滚：保留上一版 jar/镜像 tag。
+## 12. 发布与回滚边界
 
-本仓库若后续增加 `Dockerfile` / `docker-compose.yml` / 部署 workflow，在本节或单独运维文档中补充真实命令。
+本文不提供生产发布、数据库迁移、健康检查、备份或回滚命令。相关目标约定见[发布、升级与回滚指南](./deployment-and-rollback.md)，并按 [W12 部署与生产就绪](../intern/tasks/W12-deployment-production-readiness.md) 在隔离测试环境演练。
 
----
+CI 在该边界只负责:
 
-## 11. 与本项目模块的对应关系
+- 证明指定 commit 通过已定义门禁。
+- 生成可追溯、版本化的候选制品。
+- 保存测试、覆盖率和扫描证据。
+- 把制品交给需要审批的发布流程。
 
-| 流水线步骤 | 项目路径 / 命令 | 说明 |
-| --- | --- | --- |
-| 后端构建 | 根目录 `mvn -B clean package` | 多模块 reactor；入口模块 `ruoyi-admin` |
-| 后端测试 | `mvn -B test` | 测试类放在各模块 `src/test/java` |
-| 前端安装 | `ruoyi-ui` 下 `npm ci` / `npm install` | 依赖见 `package.json` |
-| 前端生产构建 | `npm run build:prod` | 产物 `ruoyi-ui/dist`（通常 gitignore） |
-| 前端预发构建 | `npm run build:stage` | 可选 |
-| 运行后端（非 CI 必需） | jar 或 `spring-boot:run` | 依赖 MySQL、Redis、正确 yml |
-| 运行前端开发服 | `npm run dev` | 开发代理见 `vue.config.js` |
-| API 调试 | Swagger | 见 [api-docs-swagger.md](./api-docs-swagger.md) |
+没有发布 runbook、恢复点、权限隔离和回滚演练时, CI 成功不能解释为“可以自动部署生产”。
 
-集成测试若访问真实 Redis/MySQL，CI 中可使用 **GitHub Actions services** 启动容器数据库（进阶，E3 之后再做）。
+## 13. Definition of Done
 
----
+### 最小 CI
 
-## 12. 前端 lockfile 与 npm audit 策略
+- [ ] 第 1 节事实基线已随实施结果更新。
+- [ ] JDK 17 和 Maven 版本固定, Wrapper 可在干净环境运行。
+- [ ] 团队先验证受支持 Node LTS, 再 pin 主版本并让 CI 读取同一来源。
+- [ ] 前端 lockfile 已提交, `npm ci` 可重复安装。
+- [ ] 后端和前端均有真实测试, executed test 数大于 0。
+- [ ] `lint`、测试和 `build:prod` scripts 在固定前端环境通过。
+- [ ] `.github/workflows/ci.yml` 真实存在, feature PR 能自动触发。
+- [ ] 故意破坏后端规则或前端构建时对应 check 失败。
+- [ ] 测试失败时报告仍可查看, 且日志没有密钥。
 
-| 策略 | 做法 | 优点 | 缺点 |
-| --- | --- | --- | --- |
-| **A. 提交 package-lock.json** | `npm install` 后提交 lock；CI 用 `npm ci` | 可复现、audit 可用 | 与上游无 lock 习惯不一致，合并上游需处理 lock |
-| **B. 不提交 lock** | CI 用 `npm install` | 与部分上游一致 | 依赖漂移；`npm audit` 可能 ENOLOCK |
+### 合并门禁
 
-审计期间曾出现：无 lockfile 时 `npm audit` 失败（ENOLOCK）。若目标包含 SEC-012 前端扫描，**策略 A 更省事**。
+- [ ] 默认流程是 feature branch + PR, 不依赖直接 push 默认分支。
+- [ ] required checks 与当前 job 名一致。
+- [ ] 至少一名 reviewer, 绕过权限有明确限制。
+- [ ] 空测试套件、缺失报告或缺失 lockfile 会失败。
+- [ ] 依赖扫描阻断等级和临时例外有负责人、到期日。
+- [ ] 缓存清空后仍能重复通过。
+- [ ] 文档没有把目标模板描述成现有 workflow、Docker 或测试能力。
 
-`npm audit --omit=dev || true`：先报告、不挡 PR；待团队有修复节奏后再改为失败即红。
+### 交付边界
 
----
+- [ ] 制品关联 commit SHA 和版本。
+- [ ] PR workflow 不持有生产凭据。
+- [ ] 发布/回滚步骤只在独立 runbook 中维护。
+- [ ] W12 未完成前不启用自动生产部署。
 
-## 13. 安全与密钥（流水线相关）
-
-1. **GitHub Secrets** 存放 NVD Key、部署 SSH 密钥、镜像仓库口令等；workflow 中用 `${{ secrets.NAME }}` 引用。  
-2. **不要**在日志中打印 token、密码、完整 `Authorization`。  
-3. Fork PR 使用 secrets 有额外限制，注意供应链投毒与恶意 PR workflow（仅可信协作者写 workflow）。  
-4. 扫描报告可能含依赖路径信息，Artifact 权限按仓库可见性管理。  
-5. CI 绿 **不等于** 生产安全配置正确；P1 整改项仍须单独验收。
-
----
-
-## 14. 常见问题
-
-### 14.1 push 了但 Actions 里没有记录
-
-- 默认分支名是否为 `master`（与 workflow `on.push.branches` 一致）。  
-- Actions 是否被禁用。  
-- workflow 文件 YAML 语法错误（有时不显示 run）。  
-- 是否推送到了正确的远程 `origin`（自有 GitHub 而非仅 upstream）。
-
-### 14.2 本机没有 JDK，能否用 CI？
-
-可以。用 **GitHub Actions** 或 **Docker maven 镜像** 构建即可。本机只需能 `git push`。
-
-### 14.3 `mvn test` 一直通过但什么也没测
-
-仓库缺少测试时，Surefire 可能 0 tests。需按 SEC-013 增加用例；门禁价值来自断言，而非「命令退出码 0」。
-
-### 14.4 前端 build 在 CI 内存不足
-
-Vue CLI 生产构建较吃内存。可在 job 中增大 Node 内存，例如：
-
-```yaml
-env:
-  NODE_OPTIONS: --max_old_space_size=4096
-```
-
-或升级 Runner 规格（自建/更大 runner）。
-
-### 14.5 OWASP 每次超时或极慢
-
-- 改为 `schedule` 夜间任务。  
-- 缓存数据目录 / 使用 NVD API Key。  
-- 不要与每个 PR 的编译绑死。
-
-### 14.6 与官方上游 RuoYi 同步时 CI 冲突
-
-- 使用 `upstream` 拉官方更新、`origin` 推自有仓库时，workflow 以**你的仓库**为准。  
-- 合并上游后若破坏构建，以 CI 日志为准修复后再发 PR。
-
-### 14.7 Docker 构建成功但 jar 无法启动
-
-CI/Docker **构建成功**只说明编译打包通过。启动还依赖：
-
-- 数据库已导入 `sql/`  
-- Redis 可用  
-- `application.yml` / `application-druid.yml` 中的连接与密钥  
-- 端口与防火墙  
-
-启动问题属于运行与部署，不单属 CI。
-
-### 14.8 是否必须 CD？
-
-不必。许多二次开发项目长期停在 **CI + 手工部署**。有稳定测试环境与发布节奏后再上 CD。
-
----
-
-## 15. 快速检查清单
-
-### 启用 CI 前
-
-- [ ] 远程 `origin` 指向自有 GitHub 仓库且可 push  
-- [ ] 了解默认分支名（`master` / `main`）  
-- [ ] 已安装本机工具链 **或** Docker **或** 仅依赖 Actions  
-
-### 最小 CI 就绪
-
-- [ ] 存在 `.github/workflows/ci.yml`（或等价）  
-- [ ] `on: push` / `pull_request` 配置正确  
-- [ ] 后端 job：JDK 17 + `mvn package`（及 `test`）  
-- [ ] 前端 job：Node + install + `build:prod`  
-- [ ] 至少一次 Actions run 为绿色  
-- [ ]（推荐）分支保护要求 status check  
-
-### 工程增强
-
-- [ ] 前端 lockfile 策略已文档化并执行  
-- [ ] 存在真实自动化测试（SEC-013）  
-- [ ] 依赖扫描报告可获取（SEC-012）  
-- [ ] 密钥仅通过 Secrets/环境注入  
-- [ ]（可选）CD 与回滚预案  
-
-### 每次发版前
-
-- [ ] 默认分支 CI 绿  
-- [ ] 扫描高危项已评估  
-- [ ] P1 安全项（密钥、Druid/Swagger、生成器）已按环境检查  
-- [ ] 数据库迁移/SQL 与版本说明已准备  
-
----
-
-## 16. 建议实施顺序（操作剧本）
-
-```text
-第 1 天
-  ├─ 确认 origin 与 GitHub 仓库
-  ├─ 添加 ci.yml（第 8 节最小模板）
-  └─ push → Actions 首次跑通（允许先 skip 严苛 audit）
-
-第 1 周
-  ├─ 约定 lockfile 策略
-  ├─ 修复 CI 红灯（依赖、内存、路径）
-  └─（可选）打开 branch protection
-
-第 2–4 周
-  ├─ 补充登录/权限/上传等测试（SEC-013）
-  ├─ 增加 nightly 依赖扫描（SEC-012）
-  └─ 与安全整改 B1 并行：密钥与暴露面
-
-之后
-  └─ 需要时再上 Artifact 部署与 CD
-```
-
----
-
-## 17. 相关文档
+## 14. 相关文档
 
 | 文档 | 说明 |
 | --- | --- |
-| [docs/audit/README.md](../audit/README.md) | 审计总览与验证记录 |
-| [docs/audit/01-architecture.md](../audit/01-architecture.md) | 模块与运行链路 |
-| [docs/audit/03-security.md](../audit/03-security.md) | 风险台账（含 SEC-012、SEC-013） |
-| [docs/audit/04-remediation-roadmap.md](../audit/04-remediation-roadmap.md) | 整改与工程批次 B3/B4 |
-| [docs/guides/api-docs-swagger.md](./api-docs-swagger.md) | API 文档与在线调试 |
-| 项目根 [README.md](../../README.md) | 官方功能与运行说明 |
-| [CONTEXT.md](../../CONTEXT.md) | 稳定术语与系统边界 |
+| [testing-strategy.md](./testing-strategy.md) | 测试金字塔、JUnit 5、Testcontainers、Vue 2、覆盖率和零测试保护 |
+| [W11-testing-and-ci.md](../intern/tasks/W11-testing-and-ci.md) | 自动化测试、可复现构建和 CI 门禁任务书 |
+| [W12-deployment-production-readiness.md](../intern/tasks/W12-deployment-production-readiness.md) | 容器化、生产就绪和恢复演练任务书 |
+| [deployment-and-rollback.md](./deployment-and-rollback.md) | 已成文的发布与回滚目标约定；当前仓库部署能力仍未落地 |
+| [api-docs-swagger.md](./api-docs-swagger.md) | API 文档与在线调试, 不能替代自动化测试 |
+| [03-security.md](../audit/03-security.md) | SEC-012 供应链和 SEC-013 自动化测试风险 |
+| [04-remediation-roadmap.md](../audit/04-remediation-roadmap.md) | 整改与工程批次 |
+| [知识库首页](../README.md) | 当前能力、审计、工程指南与培训导航 |
 
----
-
-## 18. 修订记录
+## 15. 修订记录
 
 | 日期 | 说明 |
 | --- | --- |
-| 2026-07-22 | 初版：CI/CD 概念与作用、本仓库基线、本机/Docker/Actions 路径、阶段规划、workflow 模板、日常操作、CD 演进、FAQ 与检查清单 |
+| 2026-07-22 | 初版: CI/CD 概念、本机/Docker/Actions 路径和阶段规划 |
+| 2026-08-03 | 按已核验仓库事实重构: 区分当前基线与 W11 目标, 固定 feature branch + PR + checks 流程, 明确 Node LTS 验证/pin 策略, 将测试与发布/回滚分别交给专项指南 |

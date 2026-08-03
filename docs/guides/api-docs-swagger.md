@@ -2,8 +2,10 @@
 
 本文说明本仓库中 **API 接口文档** 与 **在线试调** 由哪几部分构成、如何打开、如何带 Token 调试、默认扫描范围、如何扩展业务接口，以及开发/生产注意点。
 
-> 技术栈：Spring Boot 4 + **SpringDoc OpenAPI**（`springdoc-openapi-starter-webmvc-ui`）+ Swagger UI。  
-> 当前父 POM 属性示例：`springdoc.version`（见根 `pom.xml`）。
+> **当前基线（2026-08-03）：** SpringDoc / Swagger UI 已配置并启用，默认只扫描 `com.ruoyi.web.controller.tool`；Security 当前允许匿名访问 Swagger 相关路径。
+> **安全边界：** 本文用于开发 / 受控环境调试。关闭或限制生产 Swagger 是 SEC-003 整改目标，当前配置不能视为已经完成该整改。
+
+技术栈：Spring Boot 4 + **SpringDoc OpenAPI**（`springdoc-openapi-starter-webmvc-ui`）+ Swagger UI；版本属性见根 `pom.xml` 的 `springdoc.version`。
 
 ---
 
@@ -55,7 +57,7 @@
 1. **后端已启动**（默认 `server.port=8080`，见 `application.yml`）。
 2. **数据库已导入** RuoYi 初始化 SQL，否则可能没有「系统工具 → 系统接口」菜单（仍可用浏览器直连 Swagger URL）。
 3. 使用菜单入口时：前端已启动，且当前登录用户具备 `tool:swagger:list`（管理员角色通常具备）。
-4. Redis、数据源等按项目 README 正常配置，保证登录与业务接口可用（演示 `/test/user` 接口本身用内存数据，不依赖库表）。
+4. Redis、数据源等按[本地启动说明](../intern/08-local-setup-step-by-step.md)和[环境清单](../intern/05-environment-checklist.md)配置，保证登录与业务接口可用（演示 `/test/user` 接口本身用内存数据，不依赖库表）。
 
 ---
 
@@ -350,7 +352,8 @@ Swagger 在菜单中使用同一 `VUE_APP_BASE_API` 前缀拼接 `/swagger-ui/in
 | [docs/audit/03-security.md](../audit/03-security.md) | 安全审计（含 swagger 暴露 SEC-003） |
 | [docs/audit/04-remediation-roadmap.md](../audit/04-remediation-roadmap.md) | 整改路线中关闭/收敛文档暴露的建议 |
 | [docs/guides/ci-cd-pipeline.md](./ci-cd-pipeline.md) | CI/CD 与工程流水线（构建/测试/扫描/发布） |
-| 项目根 [README.md](../../README.md) | 官方运行与部署说明 |
+| [本地启动说明](../intern/08-local-setup-step-by-step.md) | 当前仓库的环境准备、配置和启动步骤 |
+| [知识库首页](../README.md) | 当前能力、审计、工程指南和培训导航 |
 
 ---
 
@@ -358,4 +361,5 @@ Swagger 在菜单中使用同一 `VUE_APP_BASE_API` 前缀拼接 `/swagger-ui/in
 
 | 日期 | 说明 |
 | --- | --- |
+| 2026-08-03 | 修正运行文档入口并接入知识库导航 |
 | 2026-07-21 | 初版：结构、打开方式、默认扫描范围、Token 调试、扩展与排障 |

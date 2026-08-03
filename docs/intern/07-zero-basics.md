@@ -105,7 +105,7 @@
 | 工具 | 干什么 | 你怎么用 |
 | --- | --- | --- |
 | **Git** | 代码版本管理 | `clone` 下载，`branch` 开分支，`commit` 提交，`push` 上传 |
-| **JDK** | 跑 Java 程序的「运行时」 | 本项目要 **17 或以上** |
+| **JDK** | 跑 Java 程序的「运行时」 | 本项目当前固定 **JDK 17** |
 | **Maven (`mvn`)** | 下载 Java 依赖、编译打包 | 后端构建常用 |
 | **Node.js / npm** | 跑前端工具链 | 在 `ruoyi-ui` 里 `npm install`、`npm run dev` |
 | **MySQL** | 业务数据库 | 导入 `sql/ry_*.sql` |

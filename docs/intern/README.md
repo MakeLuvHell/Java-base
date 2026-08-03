@@ -7,7 +7,8 @@
 
 > **默认分支：** `master`  
 > **安全红线：** 本地/内网开发；禁止提交真实密钥与数据库口令；禁止将默认 Druid/Swagger/JWT 配置暴露到公网。  
-> **相关审计与工程文档：** [docs/audit](../audit/README.md)、[docs/guides](../guides/)
+> **文档状态：** W1 主要跟读当前实现；W2～W12 是逐周规划任务，不表示目标功能已经合入。开始每周任务前从[知识库首页](../README.md)核对当前基线。
+> **相关入口：** [知识库首页](../README.md)、[代码库审计](../audit/README.md)、[工程指南](../guides/README.md)、[任务书索引](./tasks/README.md)
 
 ---
 
@@ -53,7 +54,7 @@
 | [07-zero-basics.md](./07-zero-basics.md) | 实习生（零基础必读） | 概念大白话 |
 | [08-local-setup-step-by-step.md](./08-local-setup-step-by-step.md) | 实习生 | 逐步装环境 |
 | [09-module-map.md](./09-module-map.md) | 实习生 / 带教带读 | **系统模块地图**：菜单功能、代码位置、与 W1～W12 对应 |
-| [tasks/](./tasks/) | 双方 | 可直接下达的具体任务书 |
+| [tasks/README.md](./tasks/README.md) | 双方 | W1～W12 状态、解锁条件、配套指南与具体任务书 |
 
 ## 推荐任务书（循序渐进主线）
 

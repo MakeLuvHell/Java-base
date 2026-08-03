@@ -2,6 +2,7 @@
 
 > **前置要求：** [W8-ticket-center-mvp.md](./W8-ticket-center-mvp.md) 已通过并合入基线；工单 CRUD、权限和 DataScope 可重复验证。
 > **本周定位：** 把静态 CRUD 升级为有业务规则的协作系统。重点是状态机、事务、幂等和并发，不是多画几个按钮。
+> **配套规范：** [数据库迁移](../../guides/database-migrations.md) · [测试策略](../../guides/testing-strategy.md) · [研发协作流程](../../guides/development-workflow.md)
 
 | 项 | 内容 |
 | --- | --- |

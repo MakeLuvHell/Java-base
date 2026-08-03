@@ -4,7 +4,7 @@
 > **目标：** 知道侧边栏每一项是干什么的、代码大概在哪、和第几周任务有关  
 > **不必第 1 天背完**；W1 登录后点一遍，W2～W7 按周回到已有模块，W8～W12 再进入工单毕业项目
 
-相关：概念 [07-zero-basics.md](./07-zero-basics.md) · 任务 [tasks/](./tasks/) · 官方功能摘要见根目录 `README.md`「内置功能」
+相关：概念 [07-zero-basics.md](./07-zero-basics.md) · [W1～W12 任务导航](./tasks/README.md) · 官方功能摘要见根目录 `README.md`「内置功能」
 
 ---
 
@@ -364,10 +364,12 @@ W5～W7 使用当前仓库已有模块；W8～W12 的路径是任务计划交付
 
 ---
 
-## 10. 和任务书、答案的链接
+## 10. 任务书与配套材料
 
 | 文档 | 用途 |
 | --- | --- |
+| [W1～W12 任务书导航](./tasks/README.md) | 任务状态、解锁条件和配套指南总入口 |
+| [工程指南索引](../guides/README.md) | 研发、迁移、测试、CI、发布和运维规范 |
 | [tasks/W1-login-and-user-list.md](./tasks/W1-login-and-user-list.md) | 登录 + 用户列表 |
 | [tasks/W2-notice-enhancement.md](./tasks/W2-notice-enhancement.md) | 公告置顶 |
 | [tasks/W3-notice-deepen.md](./tasks/W3-notice-deepen.md) | 公告筛选/导出/日志/文档 |

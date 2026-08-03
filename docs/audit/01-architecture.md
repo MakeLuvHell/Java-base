@@ -1,5 +1,7 @@
 # 系统架构与运行链路
 
+> **审计快照：** 本文基于 2026-07-21 审计基线，后续代码变化不会自动反映。基线与限制见[审计总览](./README.md)，当前能力导航见[知识库首页](../README.md)。
+
 ## 系统全景
 
 RuoYi-Vue 是前后端分离的管理后台：后端以 `ruoyi-admin` 为 Spring Boot 可执行入口，前端 `ruoyi-ui` 通过 HTTP 调用后端 API。身份采用 **JWT + Redis 会话**；业务数据落关系型数据库（默认 MySQL + Druid Profile）；上传文件落本地 `ruoyi.profile` 目录并映射为 `/profile/**`。

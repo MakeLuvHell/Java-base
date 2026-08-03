@@ -184,6 +184,8 @@ W1 跟读登录/用户列表
 全栈     → 工单领域连续迭代（W8～W10）→ 测试/CI（W11）→ 部署/回滚（W12）
 ```
 
+全栈阶段从 [W1～W12 任务书导航](./tasks/README.md)进入；工程约束依次参考[数据库迁移](../guides/database-migrations.md)、[测试策略](../guides/testing-strategy.md)、[CI/CD](../guides/ci-cd-pipeline.md)、[发布与回滚](../guides/deployment-and-rollback.md)和[可观测性与运维](../guides/observability-and-operations.md)。
+
 ## 成功标准（带教人打分参考）
 
 1. 能否讲清一次已认证请求的鉴权路径（URL → 方法权限 → 业务）

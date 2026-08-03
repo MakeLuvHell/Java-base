@@ -1,9 +1,23 @@
 # 项目上下文
 
+本文只记录当前已合入代码能够证明的系统事实和跨文档稳定术语。知识库总入口见 [docs/README.md](./docs/README.md)；审计快照、工程目标和培训规划分别在 `docs/audit/`、`docs/guides/`、`docs/intern/` 维护，未落地计划不得写成当前能力。
+
+## 当前能力边界
+
+截至 2026-08-03：
+
+- 根 POM 声明 6 个 Maven 模块：`ruoyi-admin`、`ruoyi-framework`、`ruoyi-system`、`ruoyi-quartz`、`ruoyi-generator`、`ruoyi-common`。
+- 当前没有 `ruoyi-ticket` 模块或 `biz_ticket*` 业务实现。
+- `sql/` 只有初始化脚本，没有版本化迁移目录或迁移 runner。
+- 仓库内没有 `src/test` 测试文件；前端没有 test / lint 脚本和依赖锁文件。
+- `.github` 下没有业务 workflow；仓库没有 Dockerfile 或 Compose 编排。
+
+这些事实随实现变化而更新；未来能力与验收门槛见知识库相应指南和任务书。
+
 ## 系统边界
 
 **RuoYi-Vue**：
-基于 Spring Boot 与 Vue 的前后端分离管理后台框架。本仓库当前为 RuoYi 3.9.2，后端目标为 Java 17 与 Spring Boot 4.x，前端为 Vue 2 + Element UI。
+基于 Spring Boot 与 Vue 的前后端分离管理后台框架。本仓库当前为 RuoYi 3.9.2，后端当前构建基线为 Java 17 与 Spring Boot 4.0.6，前端为 Vue 2 + Element UI。
 _Avoid_：单体页面直出、无 API 边界的一体应用
 
 **后端服务边界**：
@@ -160,3 +174,37 @@ _Avoid_：业务 Service
 
 **未能动态验证**：
 受本地服务、数据或工具条件限制，不能做出确定结论。
+
+## 文档与工程术语
+
+**当前实现**：
+能从当前分支代码、配置、SQL 或可重复验证证据确认的能力。
+_Avoid_：任务书计划、示例模板
+
+**审计快照**：
+在明确日期和 commit 上形成的证据与结论；代码变化后不会自动更新。
+_Avoid_：永远实时的系统说明
+
+**当前约定**：
+团队现在执行的协作或质量规则，例如分支 + Review。
+_Avoid_：尚未落地的自动化能力
+
+**目标状态**：
+经过文档化但尚待代码、配置或流水线落地并验证的设计。
+_Avoid_：当前已交付功能
+
+**数据库迁移**：
+按唯一版本顺序交付、校验和记录的结构或基础数据变化。
+_Avoid_：在目标环境临时手工挑选 SQL
+
+**CI 门禁**：
+提交或 PR 自动执行且失败会阻止合并的构建、测试或扫描作业。
+_Avoid_：只显示结果但永久允许失败的任务
+
+**制品（artifact）**：
+可追溯到明确 commit 的 jar、前端静态包、镜像或报告。
+_Avoid_：无法定位源码版本的 `latest`
+
+**Liveness / Readiness**：
+前者判断应用进程是否存活，后者判断应用是否能安全接收业务流量。
+_Avoid_：容器处于 running 即业务健康

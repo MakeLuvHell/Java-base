@@ -100,16 +100,16 @@ W5～W7 是进阶延伸，可按实习周期裁剪；一旦进入 W8，W8～W10 
 
 | 需求 | 文档 |
 | --- | --- |
-| 术语 | `CONTEXT.md` |
-| 链路 | `docs/audit/01-architecture.md` |
-| 风险 | `docs/audit/03-security.md` |
-| 整改批次 | `docs/audit/04-remediation-roadmap.md` |
-| Swagger | `docs/guides/api-docs-swagger.md` |
-| CI 概念 | `docs/guides/ci-cd-pipeline.md` |
-| 带教本册 | `docs/intern/*` |
-| **系统模块地图（扫菜单）** | **`docs/intern/09-module-map.md`** |
+| 总导航与当前 / 目标状态 | [知识库首页](../README.md) |
+| 术语 | [CONTEXT.md](../../CONTEXT.md) |
+| 链路 | [架构审计](../audit/01-architecture.md) |
+| 风险与整改 | [安全审计](../audit/03-security.md) + [整改路线](../audit/04-remediation-roadmap.md) |
+| 研发 / 迁移 / 测试 / 发布 / 运维 | [工程指南索引](../guides/README.md) |
+| Swagger | [API 文档指南](../guides/api-docs-swagger.md) |
+| W1～W12 解锁与状态 | [任务书索引](./tasks/README.md) |
+| 系统模块地图（扫菜单） | [09-module-map.md](./09-module-map.md) |
 
-**已知文档缺口（可让实习生反哺）：** 根 README 对本仓 docs 的导航、完整 `local-setup` 图文。见审计结论；加分任务 P04。
+知识库已有根入口和逐步本地启动说明。实习生反哺文档时，优先记录真实环境差异、可复现命令和已验证踩坑；加分任务 P04 仍可用于沉淀通用 `local-setup` 指南，但不得复制真实口令。
 
 ## 开营检查（带教人自己）
 

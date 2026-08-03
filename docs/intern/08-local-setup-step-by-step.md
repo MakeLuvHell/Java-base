@@ -21,7 +21,7 @@
 **将要安装/启动的组件：**
 
 1. Git  
-2. JDK 17+  
+2. JDK 17
 3. Maven  
 4. Node.js + npm  
 5. MySQL 8（或兼容版本）  
@@ -86,7 +86,7 @@ mvn -version
 
 ## 第 4 步：安装 Node.js 与 npm
 
-推荐使用 **Node 16+ 或 18 LTS**（以能成功 `npm install` 为准）。  
+当前仓库尚未提交 Node 版本文件。优先使用导师批准并对 Vue 2 / Vue CLI 4 安装与构建验证过的 Node LTS，记录 `node -v` 与 `npm -v`；不要把本机最新版本直接当作团队基线。
 示例（用 NodeSource 或 nvm 均可；以下为示意，以你系统文档为准）：
 
 ```bash
@@ -396,7 +396,7 @@ git diff
 | 后端启动报连库失败 | 密码错、MySQL 未启动、库名错 | `sudo service mysql status`；手动 `mysql` 登录 |
 | 后端启动报 Redis 相关错 | Redis 未启动或要密码 | 启动 Redis；核对 yml |
 | 前端页面空白/网络错误 | 后端没开；代理不对 | 确认 8080 可访问；看浏览器 F12 Network |
-| `npm install` 失败 | 网络/Node 版本 | 换镜像；换 Node 18；删 `node_modules` 重装 |
+| `npm install` 失败 | 网络 / Node 兼容性 | 核对网络与镜像；切换到团队已验证并固定的 Node LTS；清理 `node_modules` 后重装 |
 | `mvn` 下载极慢 | 网络 | 配置国内 Maven 镜像（settings.xml，问导师） |
 | 端口占用 | 8080/80 被占 | 改 `server.port` 或关掉占用进程 |
 | Linux 上传/头像报错 | `ruoyi.profile` 仍是 `D:/...` | 改成 Linux 路径并 `mkdir -p` |

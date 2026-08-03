@@ -2,6 +2,7 @@
 
 > **前置要求：** [W9-ticket-workflow-collaboration.md](./W9-ticket-workflow-collaboration.md) 已通过；状态流转、参与者校验、事务、幂等和时间线可稳定回归。
 > **本周定位：** 为工单补齐跨模块能力，训练文件安全、用户通知、未读状态、提交后副作用和可追溯性。
+> **配套规范：** [数据库迁移](../../guides/database-migrations.md) · [测试策略](../../guides/testing-strategy.md) · [可观测性与运维](../../guides/observability-and-operations.md)
 
 | 项 | 内容 |
 | --- | --- |

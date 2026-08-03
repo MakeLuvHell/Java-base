@@ -1,5 +1,7 @@
 # 安全与质量整改路线
 
+> **文档类型：整改规划。** 下列动作和批次不表示已经实施；每项只有在代码 / 配置合入并附验证证据后，才能更新为当前能力。审计基线见[审计总览](./README.md)，工程落地流程见[研发协作指南](../guides/development-workflow.md)。
+
 ## 排序原则
 
 1. 严重度优先：P0 → P1 → P2 → P3（本轮无 P0）。
@@ -83,3 +85,14 @@ SEC-012 供应链 ──► 不阻塞 P1 配置项，但应在首个修复批次
 | B4 | 工程化与体验 | SEC-005、011、013、UI | 持续 |
 
 每批次结束后更新 [03-security.md](./03-security.md) 中对应项状态，并在 [README.md](./README.md) 验证记录追加命令与结果。
+
+## 工程落地指南
+
+| 整改主题 | 配套指南 |
+| --- | --- |
+| 分支、设计、Review 与完成定义 | [研发协作流程](../guides/development-workflow.md) |
+| 表结构、基础数据和回滚脚本 | [数据库迁移](../guides/database-migrations.md) |
+| SEC-013 与回归矩阵自动化 | [测试策略](../guides/testing-strategy.md) |
+| SEC-012、构建、扫描与 PR 门禁 | [CI/CD](../guides/ci-cd-pipeline.md) |
+| 配置、迁移门禁、备份与恢复 | [发布与回滚](../guides/deployment-and-rollback.md) |
+| SEC-011、日志、健康、指标和事件 | [可观测性与运维](../guides/observability-and-operations.md) |

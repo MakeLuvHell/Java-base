@@ -1,5 +1,7 @@
 # RuoYi-Vue 代码库审计
 
+> **文档类型：审计快照。** `01`-`03` 的证据基于 2026-07-21 与下方指定 commit，不会自动反映后续代码变化；`04` 是整改计划，不表示已实施。实时入口见 [知识库首页](../README.md)，当前系统术语见 [CONTEXT.md](../../CONTEXT.md)。
+
 ## 执行摘要
 
 本轮审计为接手 RuoYi-Vue 的开发与安全维护人员建立可追溯中文文档集，覆盖系统架构、前端 UI/配色、安全边界与整改优先级。**仅文档落盘，未修改业务代码。**
@@ -78,6 +80,10 @@
 | [04-remediation-roadmap.md](./04-remediation-roadmap.md) | 整改优先级与回归验证 |
 | [../guides/api-docs-swagger.md](../guides/api-docs-swagger.md) | API 文档与 Swagger 在线调试使用说明 |
 | [../guides/ci-cd-pipeline.md](../guides/ci-cd-pipeline.md) | CI/CD 概念、作用与本仓库工程流水线操作指南 |
+| [../guides/database-migrations.md](../guides/database-migrations.md) | 版本化数据库变化、验证与恢复目标规范 |
+| [../guides/testing-strategy.md](../guides/testing-strategy.md) | 分层测试、数据隔离与质量门禁目标规范 |
+| [../guides/deployment-and-rollback.md](../guides/deployment-and-rollback.md) | 发布、迁移门禁、备份、升级与回滚目标规范 |
+| [../guides/observability-and-operations.md](../guides/observability-and-operations.md) | 日志、健康、指标、告警与事件运维目标规范 |
 | [../intern/README.md](../intern/README.md) | 实习生带教手册、学习路径与任务书 |
 
 ## 验证记录
